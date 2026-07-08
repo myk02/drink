@@ -37,8 +37,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans antialiased`}>
-        <ClerkProvider>
+        <ClerkProvider
+          appearance={{
+            variables: {
+              borderRadius: "0",
+            },
+          }}
+        >
           <ConvexClientProvider>
+
             <ClickSpark
               sparkColor="#AFFF00"
               sparkSize={12}

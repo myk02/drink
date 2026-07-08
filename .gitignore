@@ -1,5 +1,5 @@
 node_modules/
-.env
+.env*
 dist/
 build/
 .next/
@@ -10,4 +10,5 @@ Thumbs.db
 .vercel
 .kilo/
 tsconfig.tsbuildinfo
+
 
