@@ -2,9 +2,7 @@ import { Navigation } from "@/components/navigation"
 import { HeroSection } from "@/components/hero-section"
 import { FlavorCarousel } from "@/components/flavor-carousel"
 import { BentoGrid } from "@/components/bento-grid"
-import { ActivationsSection } from "@/components/activations-section"
-import { SocialSection } from "@/components/social-section"
-import { Footer } from "@/components/footer"
+import { DynamicSections } from "@/components/dynamic-sections"
 
 export default function Home() {
   return (
@@ -13,9 +11,7 @@ export default function Home() {
       <HeroSection />
       <FlavorCarousel />
       <BentoGrid />
-      <ActivationsSection />
-      <SocialSection />
-      <Footer />
+      <DynamicSections />
     </main>
   )
 }

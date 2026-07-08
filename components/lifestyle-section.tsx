@@ -2,6 +2,7 @@
 
 import { motion, useInView } from "framer-motion"
 import { useRef } from "react"
+import Image from "next/image"
 
 const lifestyleImages = [
   { query: "kenyan creative professional laptop studio nairobi", aspect: "portrait" },
@@ -127,12 +128,13 @@ export function LifestyleSection() {
               <div
                 className={`${img.aspect === "portrait" ? "aspect-[3/4]" : img.aspect === "landscape" ? "aspect-[16/9]" : "aspect-square"} relative group`}
               >
-                <motion.img
+                <Image
                   src={`/placeholder.svg?height=${img.aspect === "portrait" ? 400 : 300}&width=${img.aspect === "landscape" ? 600 : 300}&query=${img.query}`}
                   alt=""
-                  className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 33vw"
+                  loading="lazy"
+                  className="object-cover grayscale group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
                 />
                 <motion.div
                   className="absolute inset-0 bg-[#AFFF00]/0 group-hover:bg-[#AFFF00]/20"

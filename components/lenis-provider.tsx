@@ -12,8 +12,8 @@ export function LenisProvider({ children }: LenisProviderProps) {
     <ReactLenis
       root
       options={{
-        lerp: 0.1,
-        duration: 1.2,
+        lerp: 0.18,
+        duration: 1.0,
         smoothWheel: true,
         wheelMultiplier: 1,
         touchMultiplier: 2,

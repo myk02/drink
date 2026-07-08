@@ -136,6 +136,13 @@
   }
 }
 
+/* Square corners everywhere: force all elements to have no rounded corners */
+*,
+*::before,
+*::after {
+  border-radius: 0 !important;
+}
+
 /* Custom animations for GiGi */
 @keyframes float {
   0%,

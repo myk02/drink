@@ -90,13 +90,15 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
     const ctx = canvas.getContext("2d")
     if (!ctx) return
 
-    let animationId: number
+    let animationId: number | null = null
 
     const draw = (timestamp: number) => {
       if (!startTimeRef.current) {
         startTimeRef.current = timestamp
       }
       ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      const prevLength = sparksRef.current.length
 
       sparksRef.current = sparksRef.current.filter((spark: Spark) => {
         const elapsed = timestamp - spark.startTime
@@ -125,13 +127,30 @@ const ClickSpark: React.FC<ClickSparkProps> = ({
         return true
       })
 
-      animationId = requestAnimationFrame(draw)
+      if (sparksRef.current.length > 0 || prevLength > 0) {
+        animationId = requestAnimationFrame(draw)
+      } else {
+        animationId = null
+      }
     }
 
-    animationId = requestAnimationFrame(draw)
+    const startLoop = () => {
+      if (animationId === null && sparksRef.current.length > 0) {
+        animationId = requestAnimationFrame(draw)
+      }
+    }
+
+    const origPush = sparksRef.current.push.bind(sparksRef.current)
+    sparksRef.current.push = (...items: Spark[]) => {
+      const result = origPush(...items)
+      startLoop()
+      return result
+    }
 
     return () => {
-      cancelAnimationFrame(animationId)
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId)
+      }
     }
   }, [sparkColor, sparkSize, sparkRadius, sparkCount, duration, easeFunc, extraScale])
 

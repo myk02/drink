@@ -1,11 +1,11 @@
 "use client"
 
-import { motion, useScroll, useTransform, useSpring } from "framer-motion"
+import { motion, useScroll, useTransform } from "framer-motion"
 import { useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
 
-const springConfig = { stiffness: 100, damping: 30, restDelta: 0.001 }
+const smoothConfig = { damping: 50, stiffness: 400 }
 
 const fadeUpVariants = {
   hidden: { opacity: 0, y: 40 },
@@ -42,20 +42,15 @@ export function HeroSection() {
     offset: ["start start", "end start"],
   })
 
-  const rawY = useTransform(scrollYProgress, [0, 1], [0, 200])
-  const y = useSpring(rawY, springConfig)
+  const y = useTransform(scrollYProgress, [0, 1], [0, 200])
 
-  const rawTextX1 = useTransform(scrollYProgress, [0, 1], [0, -100])
-  const textX1 = useSpring(rawTextX1, springConfig)
+  const textX1 = useTransform(scrollYProgress, [0, 1], [0, -100])
 
-  const rawTextX2 = useTransform(scrollYProgress, [0, 1], [0, 100])
-  const textX2 = useSpring(rawTextX2, springConfig)
+  const textX2 = useTransform(scrollYProgress, [0, 1], [0, 100])
 
-  const rawScale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9])
-  const scale = useSpring(rawScale, springConfig)
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9])
 
-  const rawOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
-  const opacity = useSpring(rawOpacity, springConfig)
+  const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
 
   return (
     <section
