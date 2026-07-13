@@ -10,11 +10,7 @@ export default function ConvexProviderInner({ children }: { children: ReactNode 
   const convex = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_CONVEX_URL
     if (!url) return null
-    try {
-      return new ConvexReactClient(url)
-    } catch {
-      return null
-    }
+    return new ConvexReactClient(url)
   }, [])
 
   if (!convex) {
