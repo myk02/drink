@@ -6,8 +6,9 @@ import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, ShoppingCart, Check } from "lucide-react"
+import { ClientOnly } from "@/components/client-only"
 
-export default function FlavoursPage() {
+function FlavoursContent() {
   const flavors = useQuery(api.flavors.getAll)
 
   return (
@@ -105,5 +106,21 @@ export default function FlavoursPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function FlavoursPage() {
+  return (
+    <ClientOnly fallback={
+      <div className="min-h-screen bg-[#121212]">
+        <div className="max-w-7xl mx-auto px-6 py-24">
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </div>
+    }>
+      <FlavoursContent />
+    </ClientOnly>
   )
 }

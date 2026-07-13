@@ -5,8 +5,9 @@ import { api } from "@/convex/_generated/api"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Dumbbell, CheckCircle, XCircle } from "lucide-react"
+import { ClientOnly } from "@/components/client-only"
 
-export default function GymsPage() {
+function GymsContent() {
   const gyms = useQuery(api.gyms.getAll)
 
   return (
@@ -89,5 +90,21 @@ export default function GymsPage() {
         </motion.div>
       </div>
     </div>
+  )
+}
+
+export default function GymsPage() {
+  return (
+    <ClientOnly fallback={
+      <div className="min-h-screen bg-[#121212]">
+        <div className="max-w-7xl mx-auto px-6 py-24">
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </div>
+    }>
+      <GymsContent />
+    </ClientOnly>
   )
 }

@@ -6,8 +6,9 @@ import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar, Clock, Users } from "lucide-react"
 import { useState } from "react"
+import { ClientOnly } from "@/components/client-only"
 
-export default function TastingEventsPage() {
+function TastingEventsContent() {
   const events = useQuery(api.events.getByCategory, { category: "tasting" })
   const [showForm, setShowForm] = useState<string | null>(null)
 
@@ -99,5 +100,21 @@ export default function TastingEventsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function TastingEventsPage() {
+  return (
+    <ClientOnly fallback={
+      <div className="min-h-screen bg-[#121212]">
+        <div className="max-w-7xl mx-auto px-6 py-24">
+          <div className="flex items-center justify-center py-20">
+            <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+          </div>
+        </div>
+      </div>
+    }>
+      <TastingEventsContent />
+    </ClientOnly>
   )
 }
