@@ -6,7 +6,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLenis } from "lenis/react"
 import { Menu, X } from "lucide-react"
-import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/nextjs"
+import { UserButton, useAuth, useClerk } from "@clerk/nextjs"
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false)
@@ -15,6 +15,7 @@ export function Navigation() {
   const lenis = useLenis()
   const isHome = pathname === "/"
   const { isSignedIn } = useAuth()
+  const { openSignIn, openSignUp } = useClerk()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -125,23 +126,21 @@ export function Navigation() {
           ))}
           {!isSignedIn ? (
             <>
-              <SignInButton>
-                <motion.button
-                  className="bg-white/10 text-white px-4 py-2 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  Sign In
-                </motion.button>
-              </SignInButton>
-              <SignUpButton>
-                <motion.button
-                  className="bg-[#AFFF00] text-[#121212] px-4 py-2 rounded-full font-bold text-sm tracking-wide relative overflow-hidden"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <span className="relative z-10">Sign Up</span>
-                </motion.button>
-              </SignUpButton>
+              <motion.button
+                onClick={() => openSignIn()}
+                className="bg-white/10 text-white px-4 py-2 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all"
+                whileHover={{ scale: 1.05 }}
+              >
+                Sign In
+              </motion.button>
+              <motion.button
+                onClick={() => openSignUp()}
+                className="bg-[#AFFF00] text-[#121212] px-4 py-2 rounded-full font-bold text-sm tracking-wide relative overflow-hidden"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="relative z-10">Sign Up</span>
+              </motion.button>
             </>
           ) : (
             <UserButton afterSignOutUrl="/" />
@@ -216,16 +215,18 @@ export function Navigation() {
               ))}
               {!isSignedIn ? (
                 <>
-                  <SignInButton>
-                    <motion.button className="w-full bg-white/10 text-white px-6 py-3 rounded-full font-bold text-sm tracking-wide">
-                      Sign In
-                    </motion.button>
-                  </SignInButton>
-                  <SignUpButton>
-                    <motion.button className="w-full bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide">
-                      Sign Up
-                    </motion.button>
-                  </SignUpButton>
+                  <motion.button
+                    onClick={() => openSignIn()}
+                    className="w-full bg-white/10 text-white px-6 py-3 rounded-full font-bold text-sm tracking-wide"
+                  >
+                    Sign In
+                  </motion.button>
+                  <motion.button
+                    onClick={() => openSignUp()}
+                    className="w-full bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide"
+                  >
+                    Sign Up
+                  </motion.button>
                 </>
               ) : (
                 <div className="flex items-center justify-center py-2">
