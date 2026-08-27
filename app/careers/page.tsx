@@ -62,6 +62,7 @@ export default function CareersPage() {
     })
   }, [dept, q])
 
+  const validThrough = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -73,6 +74,7 @@ export default function CareersPage() {
         title: r.title,
         description: `${r.summary}\n\nResponsibilities:\n${r.responsibilities.join("\n")}`,
         datePosted: r.postedAt,
+        validThrough,
         employmentType: r.employmentType,
         hiringOrganization: {
           "@type": "Organization",

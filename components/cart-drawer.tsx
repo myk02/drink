@@ -6,7 +6,7 @@ import Link from "next/link"
 import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import { toast } from "sonner"
 import { useCart } from "@/components/cart-provider"
-import { formatKes } from "@/lib/delivery"
+import { formatKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
 
 export function CartDrawer() {
   const { items, isOpen, closeCart, setQuantity, removeItem, subtotalKes, totalCount } = useCart()
@@ -119,11 +119,27 @@ export function CartDrawer() {
                 </div>
 
                 <div className="border-t border-white/10 px-6 py-5 space-y-4">
+                  {(() => {
+                    const threshold = FREE_DELIVERY_THRESHOLD_KES
+                    const remaining = Math.max(0, threshold - subtotalKes)
+                    const pct = Math.min(100, Math.round((subtotalKes / threshold) * 100))
+                    return (
+                      <div className="bg-white/5 border border-white/10 p-3">
+                        <div className="flex justify-between text-white/60 font-mono text-xs">
+                          <span>{remaining === 0 ? "Free delivery unlocked ✓" : `Add ${formatKes(remaining)} for free delivery`}</span>
+                          <span>{pct}%</span>
+                        </div>
+                        <div className="mt-2 h-1.5 bg-white/10 overflow-hidden">
+                          <div className="h-full bg-[#AFFF00] transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })()}
                   <div className="flex items-center justify-between">
                     <span className="text-white/50 font-mono text-sm">Subtotal</span>
                     <span className="text-white font-bold text-lg">{formatKes(subtotalKes)}</span>
                   </div>
-                  <p className="text-white/30 font-mono text-xs">Delivery calculated at checkout · Nairobi zones</p>
+                  <p className="text-white/30 font-mono text-xs">Delivery by zone at checkout (KSh 200–400). Fresh sealed batches.</p>
                   <Link
                     href="/checkout"
                     onClick={closeCart}
@@ -131,6 +147,7 @@ export function CartDrawer() {
                   >
                     Checkout — {formatKes(subtotalKes)}
                   </Link>
+                  <p className="text-white/20 font-mono text-[11px] text-center">M-Pesa or card via Paystack • 1–2 day Nairobi</p>
                 </div>
               </>
             )}

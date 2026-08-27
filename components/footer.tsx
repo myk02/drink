@@ -62,9 +62,9 @@ export function Footer() {
       title: "Shop",
       links: [
         { label: "All Cases & Packs", href: "/shop" },
-        { label: "Taster 6-Pack", href: "/shop" },
-        { label: "Flavour 12-Packs", href: "/shop" },
-        { label: "Mixed 24 Case", href: "/shop" },
+        { label: "Taster 6-Pack", href: "/shop/taster-6" },
+        { label: "Flavour 12-Packs", href: "/shop/lemon-lime-12" },
+        { label: "Mixed 24 Case", href: "/shop/mixed-24" },
       ],
     },
     {
@@ -98,7 +98,7 @@ export function Footer() {
   ]
 
   return (
-    <footer ref={footerRef} id="careers" className="relative bg-[#121212] pt-16 pb-6 overflow-hidden">
+    <footer ref={footerRef} id="footer" className="relative bg-[#121212] pt-16 pb-6 overflow-hidden">
       <div className="max-w-7xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 60 }}

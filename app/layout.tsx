@@ -7,6 +7,7 @@ import { ConvexClientProvider } from "@/components/convex-client-provider"
 import { LenisProvider } from "@/components/lenis-provider"
 import ClickSpark from "@/components/click-spark"
 import { CartProvider } from "@/components/cart-provider"
+import { WishlistProvider } from "@/components/wishlist-provider"
 import { CartDrawer } from "@/components/cart-drawer"
 import { Toaster } from "@/components/ui/sonner"
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site"
@@ -95,8 +96,10 @@ export default function RootLayout({
               easing="ease-out"
             >
               <CartProvider>
-                <LenisProvider>{children}</LenisProvider>
-                <CartDrawer />
+                <WishlistProvider>
+                  <LenisProvider>{children}</LenisProvider>
+                  <CartDrawer />
+                </WishlistProvider>
               </CartProvider>
             </ClickSpark>
             <Toaster position="top-center" richColors theme="dark" />

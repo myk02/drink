@@ -78,6 +78,22 @@ export const submit = mutation({
 export const getResumeUrl = query({
   args: { storageId: v.id("_storage") },
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) throw new Error("Sign in required to view resumes.")
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first()
+    if (!user) throw new Error("User not found.")
+    // Allow if admin, or if the caller owns an application that references this file
+    if (user.role !== "admin") {
+      const owned = await ctx.db
+        .query("careerApplications")
+        .withIndex("by_email", (q) => q.eq("email", user.email ?? ""))
+        .collect()
+      const hasOwn = owned.some((a) => a.resumeStorageId === args.storageId)
+      if (!hasOwn) throw new Error("Not authorized to view this file.")
+    }
     return await ctx.storage.getUrl(args.storageId)
   },
 })

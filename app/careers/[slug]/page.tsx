@@ -42,7 +42,7 @@ export default async function CareerRolePage({ params }: { params: Promise<{ slu
     title: role.title,
     description: `${role.summary}\n\nResponsibilities:\n${role.responsibilities.join("\n")}\n\nRequirements:\n${role.requirements.join("\n")}\n\nNice to have:\n${role.niceToHave.join("\n")}`,
     datePosted: role.postedAt,
-    validThrough: new Date(new Date(role.postedAt).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    validThrough: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
     employmentType: role.employmentType,
     hiringOrganization: {
       "@type": "Organization",

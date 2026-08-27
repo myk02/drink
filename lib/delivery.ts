@@ -24,3 +24,5 @@ export function getZoneFee(zoneName: string): number | null {
 export function formatKes(amount: number): string {
   return `KSh ${amount.toLocaleString("en-KE")}`
 }
+
+export const FREE_DELIVERY_THRESHOLD_KES = 3000
