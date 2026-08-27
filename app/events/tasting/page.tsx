@@ -1,16 +1,49 @@
 "use client"
 
-import { useQuery } from "convex/react"
+import { useQuery, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar, Clock, Users } from "lucide-react"
 import { useState } from "react"
+import { toast } from "sonner"
+import type { Id } from "@/convex/_generated/dataModel"
 import { ClientOnly } from "@/components/client-only"
 
 function TastingEventsContent() {
   const events = useQuery(api.events.getByCategory, { category: "tasting" })
-  const [showForm, setShowForm] = useState<string | null>(null)
+  const register = useMutation(api.events.register)
+  const [openFormId, setOpenFormId] = useState<string | null>(null)
+  const [name, setName] = useState("")
+  const [email, setEmail] = useState("")
+  const [phone, setPhone] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
+
+  const isFull = (registered: number, capacity: number) => registered >= capacity
+
+  const handleRegister = async (eventId: Id<"events">) => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      await register({ eventId, name, email, phone: phone || undefined })
+      setRegisteredIds((prev) => new Set(prev).add(eventId))
+      setOpenFormId(null)
+      setName("")
+      setEmail("")
+      setPhone("")
+      toast.success("You're registered! See you there — bring your energy.")
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again."
+      if (msg.includes("already registered")) {
+        setRegisteredIds((prev) => new Set(prev).add(eventId))
+        setOpenFormId(null)
+      }
+      toast.error(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#121212]">
@@ -39,49 +72,118 @@ function TastingEventsContent() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-          {events?.map((event, index) => (
-            <motion.div
-              key={event._id}
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-[#AFFF00]/30 transition-all duration-500"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <span className="text-xs font-mono text-[#AFFF00] bg-[#AFFF00]/10 px-2 py-1 rounded-full uppercase">
-                  {event.status}
-                </span>
-                <span className="text-white/40 font-mono text-xs flex items-center gap-1">
-                  <Users className="w-3 h-3" />
-                  {event.registered}/{event.capacity}
-                </span>
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
-              <p className="text-white/60 font-mono text-sm mb-4">{event.description}</p>
-              <div className="space-y-2 text-white/40 font-mono text-xs">
-                <div className="flex items-center gap-2">
-                  <Calendar className="w-3 h-3" />
-                  {event.date}
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="w-3 h-3" />
-                  {event.time}
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-3 h-3" />
-                  {event.location}
-                </div>
-              </div>
-              <motion.button
-                className="mt-6 w-full bg-[#AFFF00] text-[#121212] px-4 py-3 rounded-xl font-bold text-sm tracking-wide"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setShowForm(event._id)}
+          {events?.map((event, index) => {
+            const full = isFull(event.registered, event.capacity)
+            const registered = registeredIds.has(event._id)
+            const formOpen = openFormId === event._id
+
+            return (
+              <motion.div
+                key={event._id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:border-[#AFFF00]/30 transition-all duration-500"
               >
-                Register for Free
-              </motion.button>
-            </motion.div>
-          ))}
+                <div className="flex items-start justify-between mb-4">
+                  <span className="text-xs font-mono text-[#AFFF00] bg-[#AFFF00]/10 px-2 py-1 rounded-full uppercase">
+                    {event.status}
+                  </span>
+                  <span className={`font-mono text-xs flex items-center gap-1 ${full ? "text-red-400" : "text-white/40"}`}>
+                    <Users className="w-3 h-3" />
+                    {event.registered}/{event.capacity}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">{event.title}</h3>
+                <p className="text-white/60 font-mono text-sm mb-4">{event.description}</p>
+                <div className="space-y-2 text-white/40 font-mono text-xs">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3 h-3" />
+                    {event.date}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3 h-3" />
+                    {event.time}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-3 h-3" />
+                    {event.location}
+                  </div>
+                </div>
+
+                {!registered && !full && (
+                  <motion.button
+                    className="mt-6 w-full bg-[#AFFF00] text-[#121212] px-4 py-3 rounded-xl font-bold text-sm tracking-wide cursor-pointer"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setOpenFormId(formOpen ? null : event._id)}
+                  >
+                    {formOpen ? "Close Form" : "Register for Free"}
+                  </motion.button>
+                )}
+                {registered && (
+                  <div className="mt-6 w-full bg-[#AFFF00]/10 text-[#AFFF00] px-4 py-3 rounded-xl font-mono text-sm text-center border border-[#AFFF00]/20">
+                    ✓ You&apos;re registered!
+                  </div>
+                )}
+                {full && !registered && (
+                  <div className="mt-6 w-full bg-white/5 text-white/40 px-4 py-3 rounded-xl font-mono text-sm text-center">
+                    Event fully booked
+                  </div>
+                )}
+
+                <AnimatePresence>
+                  {formOpen && !registered && (
+                    <motion.form
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="overflow-hidden"
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        void handleRegister(event._id)
+                      }}
+                    >
+                      <div className="pt-4 space-y-3">
+                        <input
+                          required
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="Full Name *"
+                          disabled={isSubmitting}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
+                        />
+                        <input
+                          required
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="Email Address *"
+                          disabled={isSubmitting}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
+                        />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="Phone Number"
+                          disabled={isSubmitting}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSubmitting || !name.trim() || !email.trim()}
+                          className="w-full bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white px-4 py-3 rounded-xl font-bold text-sm tracking-wide transition-colors cursor-pointer"
+                        >
+                          {isSubmitting ? "Registering..." : "Confirm Registration"}
+                        </button>
+                      </div>
+                    </motion.form>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            )
+          })}
           {events?.length === 0 && (
             <div className="col-span-2 text-center py-20">
               <p className="text-white/40 font-mono text-lg">No tasting events scheduled yet. Check back soon!</p>
@@ -90,7 +192,7 @@ function TastingEventsContent() {
           )}
         </div>
 
-        {!events && (
+        {events !== undefined && (
           <div className="mt-12 text-center">
             <p className="text-white/30 font-mono text-sm">
               Want to host a tasting event?{" "}

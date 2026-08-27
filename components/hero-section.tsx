@@ -1,13 +1,15 @@
 "use client"
 
-import { motion, useScroll, useTransform } from "framer-motion"
+import { motion, useScroll, useTransform, type Variants } from "framer-motion"
 import { useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { useAuth, useClerk } from "@clerk/nextjs"
 
 const smoothConfig = { damping: 50, stiffness: 400 }
 
-const fadeUpVariants = {
+const fadeUpVariants: Variants = {
   hidden: { opacity: 0, y: 40 },
   visible: (i: number) => ({
     opacity: 1,
@@ -20,7 +22,7 @@ const fadeUpVariants = {
   }),
 }
 
-const scaleInVariants = {
+const scaleInVariants: Variants = {
   hidden: { opacity: 0, scale: 0.8, rotate: -10 },
   visible: {
     opacity: 1,
@@ -37,6 +39,9 @@ const scaleInVariants = {
 
 export function HeroSection() {
   const ref = useRef(null)
+  const router = useRouter()
+  const { isSignedIn } = useAuth()
+  const { openSignUp } = useClerk()
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -147,6 +152,12 @@ export function HeroSection() {
               className="flex flex-wrap gap-3 pt-2"
             >
               <motion.button
+                onClick={() => {
+                  // Already signed in? Clerk single-session mode blocks the
+                  // SignUp modal — send them shopping instead.
+                  if (isSignedIn) router.push("/flavours")
+                  else openSignUp()
+                }}
                 className="bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 group relative overflow-hidden"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

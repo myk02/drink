@@ -5,11 +5,13 @@ import { api } from "@/convex/_generated/api"
 import { motion } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, ShoppingCart, Check } from "lucide-react"
+import { ArrowLeft, ShoppingCart } from "lucide-react"
 import { ClientOnly } from "@/components/client-only"
+import { AddToCartButton } from "@/components/cart-drawer"
+import { flavorProfiles } from "@/lib/flavors"
 
 function FlavoursContent() {
-  const flavors = useQuery(api.flavors.getAll)
+  const products = useQuery(api.products.getActive)
 
   return (
     <div className="min-h-screen bg-[#121212]">
@@ -31,16 +33,10 @@ function FlavoursContent() {
           </p>
         </motion.div>
 
-        {!flavors && (
-          <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
-
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {flavors?.map((flavor, index) => (
+          {flavorProfiles.map((flavor, index) => (
             <motion.div
-              key={flavor._id}
+              key={flavor.slug}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -55,13 +51,9 @@ function FlavoursContent() {
                   src={flavor.image}
                   alt={flavor.name}
                   fill
-                  className={`object-contain p-8 drop-shadow-2xl transition-all duration-700 group-hover:scale-110 ${flavor.isComingSoon ? "blur-sm grayscale" : ""}`}
+                  sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-contain p-4 drop-shadow-2xl transition-all duration-700 group-hover:scale-105"
                 />
-                {flavor.isComingSoon && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-4xl font-black text-white/30">?</span>
-                  </div>
-                )}
               </div>
               <div className="p-6">
                 <div className="flex items-start justify-between mb-2">
@@ -84,22 +76,33 @@ function FlavoursContent() {
                     </span>
                   ))}
                 </div>
-                {flavor.isAvailable && (
-                  <motion.button
-                    className="mt-6 w-full bg-[#AFFF00] text-[#121212] px-4 py-3 rounded-xl font-bold text-sm tracking-wide flex items-center justify-center gap-2 relative overflow-hidden group/btn"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <motion.div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-all duration-700" />
-                    <ShoppingCart className="w-4 h-4 relative z-10" />
-                    <span className="relative z-10">Add to Cart</span>
-                  </motion.button>
-                )}
-                {flavor.isComingSoon && (
-                  <div className="mt-6 w-full bg-white/5 text-white/40 px-4 py-3 rounded-xl font-mono text-sm text-center">
-                    Dropping soon in Nairobi 🇰🇪
-                  </div>
-                )}
+                {(() => {
+                  const pack = products?.find((p) => p.type === "single" && p.flavorName === flavor.name)
+                  return pack ? (
+                    <div className="mt-6">
+                      <AddToCartButton
+                        product={{
+                          _id: pack._id,
+                          name: pack.name,
+                          slug: pack.slug,
+                          image: pack.image,
+                          canCount: pack.canCount,
+                          priceKes: pack.priceKes,
+                          compareAtKes: pack.compareAtKes,
+                        }}
+                        label={`Add 12-Pack · KSh ${pack.priceKes.toLocaleString("en-KE")}`}
+                      />
+                    </div>
+                  ) : (
+                    <Link
+                      href="/shop"
+                      className="mt-6 w-full bg-[#AFFF00] text-[#121212] px-4 py-3 font-bold text-sm tracking-wide flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                    >
+                      <ShoppingCart className="w-4 h-4" />
+                      <span>Shop Cases</span>
+                    </Link>
+                  )
+                })()}
               </div>
             </motion.div>
           ))}

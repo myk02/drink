@@ -1,7 +1,10 @@
 import { v } from "convex/values"
-import { internalMutation } from "./_generated/server"
+import { mutation, query } from "./_generated/server"
 
-export const syncUser = internalMutation({
+// Public mutation: called by the Clerk webhook route (app/api/webhooks/clerk)
+// via ConvexHttpClient. Internal functions are not callable over HTTP.
+// Idempotent upsert keyed by clerkId.
+export const syncUser = mutation({
   args: {
     clerkId: v.string(),
     name: v.optional(v.string()),
@@ -31,5 +34,20 @@ export const syncUser = internalMutation({
       role: "user",
       createdAt: Date.now(),
     })
+  },
+})
+
+// Identity-guarded profile lookup for the subscriber portal.
+export const getMe = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first()
+    if (!user) return null
+    return { email: user.email ?? null, name: user.name ?? null }
   },
 })

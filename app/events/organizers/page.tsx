@@ -3,6 +3,7 @@
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, CalendarCheck, Megaphone, Handshake, PartyPopper } from "lucide-react"
+import { InquiryForm } from "@/components/inquiry-form"
 
 const services = [
   {
@@ -70,44 +71,10 @@ export default function OrganizersPage() {
           <p className="text-white/60 font-mono text-sm mb-6">
             Tell us about your event and we&apos;ll create a custom partnership package.
           </p>
-          <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <input
-                placeholder="Your Name"
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-              />
-              <input
-                placeholder="Organization"
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-              />
-            </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <input
-                placeholder="Email Address"
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-              />
-              <input
-                placeholder="Phone Number"
-                className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-              />
-            </div>
-            <input
-              placeholder="Event Name & Date"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-            />
-            <textarea
-              placeholder="Tell us about your event — expected attendance, type, location in Nairobi..."
-              rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-            />
-            <motion.button
-              className="w-full bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-xl font-bold text-sm tracking-wide"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              Submit Partnership Request
-            </motion.button>
-          </div>
+          <InquiryForm
+            category="organizer"
+            messagePlaceholder="Tell us about your event — expected attendance, type, date, location in Nairobi..."
+          />
         </motion.div>
       </div>
     </div>

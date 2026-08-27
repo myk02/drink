@@ -2,43 +2,16 @@
 
 import type React from "react"
 
-import { motion, AnimatePresence, useSpring } from "framer-motion"
+import { motion, AnimatePresence, useSpring, type Variants } from "framer-motion"
 import { useState } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { flavorProfiles } from "@/lib/flavors"
 
-const flavors = [
-  {
-    id: 1,
-    name: "Lemon Lime",
-    tagline: "Citrus Shock",
-    description: "A zesty explosion of natural lemon and lime that wakes you up instantly.",
-    image: "/images/drink2.png",
-    bgColor: "from-[#84cc16]/20 via-[#84cc16]/10 to-transparent",
-    accentColor: "#84cc16",
-  },
-  {
-    id: 2,
-    name: "Pineapple Coconut",
-    tagline: "Tropical Rush",
-    description: "Island vibes with every sip. Transport yourself to paradise.",
-    image: "/images/drink1.png",
-    bgColor: "from-[#f59e0b]/20 via-[#f59e0b]/10 to-transparent",
-    accentColor: "#f59e0b",
-  },
-  {
-    id: 3,
-    name: "Mystery",
-    tagline: "Coming Soon",
-    description: "Something epic is brewing... Stay tuned.",
-    image: "/mystery-energy-drink-can-silhouette.jpg",
-    bgColor: "from-[#AFFF00]/20 via-[#AFFF00]/5 to-transparent",
-    accentColor: "#AFFF00",
-    mystery: true,
-  },
-]
+const flavors = flavorProfiles
 
-const slideVariants = {
+const slideVariants: Variants = {
   enter: (direction: number) => ({
     x: direction > 0 ? 300 : -300,
     opacity: 0,
@@ -104,11 +77,14 @@ export function FlavorCarousel() {
   return (
     <section id="flavours" className="relative py-16 bg-white overflow-hidden">
       <motion.div
-        className={`absolute inset-0 bg-gradient-to-br ${currentFlavor.bgColor}`}
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(circle at 50% 42%, ${currentFlavor.accent}2e 0%, ${currentFlavor.accent}17 38%, transparent 72%)`,
+        }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, ease: "easeOut" }}
-        key={currentFlavor.id}
+        key={currentFlavor.slug}
       />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
@@ -140,7 +116,7 @@ export function FlavorCarousel() {
             </motion.span>
             <motion.span
               className="inline-block"
-              style={{ color: currentFlavor.accentColor }}
+              style={{ color: currentFlavor.accent }}
               initial={{ y: 80 }}
               whileInView={{ y: 0 }}
               viewport={{ once: true }}
@@ -166,7 +142,7 @@ export function FlavorCarousel() {
 
             <AnimatePresence mode="wait" custom={direction}>
               <motion.div
-                key={currentFlavor.id}
+                key={currentFlavor.slug}
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -176,19 +152,11 @@ export function FlavorCarousel() {
                 style={{ perspective: 1000 }}
               >
                 <motion.div
-                  className={`bg-white rounded-3xl p-6 md:p-8 border-2 border-[#121212]/10 shadow-xl ${currentFlavor.mystery ? "relative overflow-hidden" : ""}`}
+                  className="bg-white rounded-3xl p-6 md:p-8 border-2 border-[#121212]/10 shadow-xl"
                   style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
                 >
-                  {currentFlavor.mystery && (
-                    <motion.div
-                      className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg viewBox=%270 0 100 100%27 xmlns=%27http://www.w3.org/2000/svg%27%3E%3Cfilter id=%27noise%27%3E%3CfeTurbulence type=%27fractalNoise%27 baseFrequency=%270.8%27/%3E%3C/filter%3E%3Crect width=%27100%25%27 height=%27100%25%27 filter=%27url(%23noise)%27/%3E%3C/svg%3E')] opacity-10 pointer-events-none"
-                      animate={{ opacity: [0.05, 0.15, 0.05] }}
-                      transition={{ duration: 0.5, repeat: Number.POSITIVE_INFINITY }}
-                    />
-                  )}
-
                   <div className="grid md:grid-cols-2 gap-6 items-center">
                     <motion.div
                       className="relative aspect-[3/4] flex items-center justify-center"
@@ -196,27 +164,18 @@ export function FlavorCarousel() {
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
                     >
                       <Image
-                        src={currentFlavor.image || "/placeholder.svg"}
+                        src={currentFlavor.image || "/placeholder.jpg"}
                         alt={currentFlavor.name}
                         fill
-                        className={`object-contain ${currentFlavor.mystery ? "blur-sm grayscale" : ""}`}
+                        className="object-contain"
                       />
-                      {currentFlavor.mystery && (
-                        <motion.div
-                          className="absolute inset-0 flex items-center justify-center"
-                          animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-                          transition={{ duration: 2, repeat: Number.POSITIVE_INFINITY }}
-                        >
-                          <span className="text-7xl font-black text-[#121212]/20">?</span>
-                        </motion.div>
-                      )}
                     </motion.div>
 
                     <div className="space-y-4">
                       <div>
                         <motion.span
                           className="font-mono text-xs tracking-widest"
-                          style={{ color: currentFlavor.accentColor }}
+                          style={{ color: currentFlavor.accent }}
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.2 }}
@@ -242,59 +201,41 @@ export function FlavorCarousel() {
                         {currentFlavor.description}
                       </motion.p>
 
-                      {!currentFlavor.mystery && (
-                        <motion.div
-                          className="flex flex-wrap gap-2"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                        >
-                          {["Zero Sugar", "Metabolism Boost", "Natural Flavours", "Vitamin Rich"].map((badge) => (
-                            <span
-                              key={badge}
-                              className="px-2 py-1 bg-[#121212]/5 rounded-full text-xs font-mono text-[#121212]/60"
-                            >
-                              {badge}
-                            </span>
-                          ))}
-                        </motion.div>
-                      )}
+                      <motion.div
+                        className="flex flex-wrap gap-2"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                      >
+                        {currentFlavor.badges.map((badge) => (
+                          <span
+                            key={badge}
+                            className="px-2 py-1 bg-[#121212]/5 rounded-full text-xs font-mono text-[#121212]/60"
+                          >
+                            {badge}
+                          </span>
+                        ))}
+                      </motion.div>
 
-                      {!currentFlavor.mystery && (
-                        <motion.button
-                          className="px-6 py-3 rounded-full font-bold text-sm tracking-wide w-full md:w-auto relative overflow-hidden"
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                          style={{ backgroundColor: currentFlavor.accentColor, color: "#121212" }}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                        >
-                          <motion.span
-                            className="absolute inset-0 bg-white/20"
-                            initial={{ x: "-100%" }}
-                            whileHover={{ x: "100%" }}
-                            transition={{ duration: 0.5 }}
-                          />
-                          <span className="relative z-10">Add to Cart</span>
-                        </motion.button>
-                      )}
-
-                      {currentFlavor.mystery && (
-                        <motion.div
-                          className="flex items-center gap-3"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                        >
-                          <motion.div
-                            className="w-2 h-2 bg-[#AFFF00] rounded-full"
-                            animate={{ scale: [1, 1.3, 1], opacity: [1, 0.5, 1] }}
-                            transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-                          />
-                          <span className="font-mono text-xs text-[#121212]/60">Dropping soon...</span>
-                        </motion.div>
-                      )}
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                        <Link href="/flavours">
+                          <motion.button
+                            className="px-6 py-3 rounded-full font-bold text-sm tracking-wide w-full md:w-auto relative overflow-hidden cursor-pointer"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                            style={{ backgroundColor: currentFlavor.accent, color: "#121212" }}
+                          >
+                            <motion.span
+                              className="absolute inset-0 bg-white/20"
+                              initial={{ x: "-100%" }}
+                              whileHover={{ x: "100%" }}
+                              transition={{ duration: 0.5 }}
+                            />
+                            <span className="relative z-10">View Flavour</span>
+                          </motion.button>
+                        </Link>
+                      </motion.div>
                     </div>
                   </div>
                 </motion.div>
@@ -332,7 +273,7 @@ export function FlavorCarousel() {
           <div className="flex justify-center gap-2 mt-6">
             {flavors.map((flavor, index) => (
               <motion.button
-                key={flavor.id}
+                key={flavor.slug}
                 onClick={() => {
                   const newDirection = index > currentIndex ? 1 : -1
                   setCurrentIndex(index)
@@ -340,7 +281,7 @@ export function FlavorCarousel() {
                 }}
                 className="h-2 rounded-full transition-all"
                 style={{
-                  backgroundColor: index === currentIndex ? flavor.accentColor : "#12121220",
+                  backgroundColor: index === currentIndex ? flavor.accent : "#12121220",
                 }}
                 animate={{
                   width: index === currentIndex ? 28 : 10,

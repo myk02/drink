@@ -1,4 +1,4 @@
-node_modules/
+﻿node_modules/
 .env*
 dist/
 build/
@@ -11,4 +11,10 @@ Thumbs.db
 .kilo/
 tsconfig.tsbuildinfo
 
-
+# local backups & tooling
+.backups/
+.agents/
+.claude/
+.commandcode/
+CLAUDE.md
+skills-lock.json

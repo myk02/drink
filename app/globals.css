@@ -136,7 +136,13 @@
   }
 }
 
-/* Square corners everywhere: force all elements to have no rounded corners */
+/*
+ * Square corners everywhere — INTENTIONAL brand decision (see commit "Make all
+ * corners square"). This override deliberately beats every Tailwind rounded-*
+ * utility across the codebase, so do NOT remove it unless the whole design
+ * language moves back to rounded corners. Clerk modals are squared separately
+ * via ClerkProvider appearance variables in app/layout.tsx.
+ */
 *,
 *::before,
 *::after {

@@ -5,10 +5,19 @@ import { api } from "@/convex/_generated/api"
 import { motion } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Dumbbell, CheckCircle, XCircle } from "lucide-react"
+import { useState, useMemo } from "react"
 import { ClientOnly } from "@/components/client-only"
 
 function GymsContent() {
   const gyms = useQuery(api.gyms.getAll)
+  const [activeArea, setActiveArea] = useState<string | null>(null)
+
+  const areas = useMemo(() => {
+    if (!gyms) return []
+    return Array.from(new Set(gyms.map((g) => g.area))).sort()
+  }, [gyms])
+
+  const filtered = activeArea ? gyms?.filter((g) => g.area === activeArea) : gyms
 
   return (
     <div className="min-h-screen bg-[#121212]">
@@ -30,6 +39,37 @@ function GymsContent() {
           </p>
         </motion.div>
 
+        {gyms && gyms.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-8">
+            <button
+              onClick={() => setActiveArea(null)}
+              className={`px-3 py-1.5 text-xs font-mono border transition-colors cursor-pointer ${
+                activeArea === null
+                  ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]"
+                  : "border-white/10 text-white/50 hover:text-[#AFFF00] hover:border-[#AFFF00]/40"
+              }`}
+            >
+              All Areas ({gyms.length})
+            </button>
+            {areas.map((area) => {
+              const count = gyms.filter((g) => g.area === area).length
+              return (
+                <button
+                  key={area}
+                  onClick={() => setActiveArea(activeArea === area ? null : area)}
+                  className={`px-3 py-1.5 text-xs font-mono border transition-colors cursor-pointer ${
+                    activeArea === area
+                      ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]"
+                      : "border-white/10 text-white/50 hover:text-[#AFFF00] hover:border-[#AFFF00]/40"
+                  }`}
+                >
+                  {area} ({count})
+                </button>
+              )
+            })}
+          </div>
+        )}
+
         {!gyms && (
           <div className="flex items-center justify-center py-20">
             <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
@@ -37,7 +77,7 @@ function GymsContent() {
         )}
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {gyms?.map((gym, index) => (
+          {filtered?.map((gym, index) => (
             <motion.div
               key={gym._id}
               initial={{ opacity: 0, y: 30 }}

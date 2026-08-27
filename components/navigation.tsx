@@ -5,8 +5,9 @@ import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useLenis } from "lenis/react"
-import { Menu, X } from "lucide-react"
+import { Menu, X, ShoppingCart } from "lucide-react"
 import { UserButton, useAuth, useClerk } from "@clerk/nextjs"
+import { useCart } from "@/components/cart-provider"
 
 export function Navigation() {
   const [scrolled, setScrolled] = useState(false)
@@ -16,6 +17,7 @@ export function Navigation() {
   const isHome = pathname === "/"
   const { isSignedIn } = useAuth()
   const { openSignIn, openSignUp } = useClerk()
+  const cart = useCart()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -25,29 +27,27 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
-  const scrollToSection = (id: string) => {
-    if (!isHome) return
-    const element = document.querySelector(id)
+  const scrollToHash = (hash: string) => {
+    const element = document.querySelector<HTMLElement>(hash)
     if (element && lenis) {
       lenis.scrollTo(element, { offset: -100 })
     }
     setMobileMenuOpen(false)
   }
 
-  const navLinks = [
-    { label: "Home", href: "/", scrollTo: "#hero" },
-    { label: "Flavours", href: "/flavours", scrollTo: "#flavours" },
-    { label: "Events", href: "/events", scrollTo: "#creators" },
-    { label: "Distributors", href: "#distributors", scrollTo: "#distributors" },
-    { label: "Careers", href: "#careers", scrollTo: "#careers" },
-  ]
+  // Shared cubic-bezier easing tuple (framer-motion needs the tuple type)
+  const EASE: [number, number, number, number] = [0.25, 0.4, 0.25, 1]
 
-  const handleNavClick = (item: typeof navLinks[0]) => {
-    if (isHome && item.scrollTo) {
-      scrollToSection(item.scrollTo)
-    }
-    setMobileMenuOpen(false)
-  }
+  // Distributors & Careers are real pages now; Flavours/Events smooth-scroll
+  // to home sections when already on the home page.
+  const navLinks = [
+    { label: "Home", href: "/", hash: isHome ? "#hero" : null },
+    { label: "Flavours", href: isHome ? null : "/flavours", hash: isHome ? "#flavours" : null },
+    { label: "Shop", href: "/shop", hash: null },
+    { label: "Events", href: isHome ? null : "/events", hash: isHome ? "#creators" : null },
+    { label: "Distributors", href: "/distributors", hash: null },
+    { label: "Careers", href: "/careers", hash: null },
+  ]
 
   return (
     <motion.nav
@@ -80,11 +80,20 @@ export function Navigation() {
 
         <div className="hidden md:flex items-center gap-8">
           {navLinks.map((item, i) => (
-            item.href.startsWith("#") ? (
-              <motion.button
-                key={item.label}
-                onClick={() => scrollToSection(item.href)}
-                className={`text-sm font-medium tracking-wide transition-colors relative ${
+            <Link
+              key={item.label}
+              href={item.href ?? "/"}
+              onClick={(e) => {
+                if (item.hash) {
+                  e.preventDefault()
+                  scrollToHash(item.hash)
+                } else {
+                  setMobileMenuOpen(false)
+                }
+              }}
+            >
+              <motion.span
+                className={`text-sm font-medium tracking-wide transition-colors relative cursor-pointer ${
                   scrolled || !isHome ? "text-white/80 hover:text-[#AFFF00]" : "text-[#121212]/80 hover:text-[#121212]"
                 }`}
                 initial={{ opacity: 0, y: -10 }}
@@ -98,32 +107,27 @@ export function Navigation() {
                   className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#AFFF00] origin-left"
                   initial={{ scaleX: 0 }}
                   whileHover={{ scaleX: 1 }}
-                  transition={{ duration: 0.3, ease: [0.25, 0.4, 0.25, 1] }}
+                  transition={{ duration: 0.3, ease: EASE }}
                 />
-              </motion.button>
-            ) : (
-              <Link key={item.label} href={item.href}>
-                <motion.span
-                  className={`text-sm font-medium tracking-wide transition-colors relative cursor-pointer ${
-                    scrolled || !isHome ? "text-white/80 hover:text-[#AFFF00]" : "text-[#121212]/80 hover:text-[#121212]"
-                  }`}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1, duration: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {item.label}
-                  <motion.span
-                    className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#AFFF00] origin-left"
-                    initial={{ scaleX: 0 }}
-                    whileHover={{ scaleX: 1 }}
-                    transition={{ duration: 0.3, ease: [0.25, 0.4, 0.25, 1] }}
-                  />
-                </motion.span>
-              </Link>
-            )
+              </motion.span>
+            </Link>
           ))}
+          <button
+            onClick={cart.openCart}
+            className="relative p-2 cursor-pointer"
+            aria-label={`Open cart${cart.totalCount > 0 ? ` (${cart.totalCount} items)` : ""}`}
+          >
+            <ShoppingCart className={scrolled || !isHome ? "text-white/80 hover:text-[#AFFF00]" : "text-[#121212]/80"} />
+            {cart.hydrated && cart.totalCount > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-0.5 -right-0.5 w-4.5 h-4.5 min-w-[18px] min-h-[18px] px-1 bg-[#AFFF00] text-[#121212] text-[10px] font-black flex items-center justify-center"
+              >
+                {cart.totalCount}
+              </motion.span>
+            )}
+          </button>
           {!isSignedIn ? (
             <>
               <motion.button
@@ -143,29 +147,42 @@ export function Navigation() {
               </motion.button>
             </>
           ) : (
-            <UserButton afterSignOutUrl="/" />
+            <UserButton />
           )}
         </div>
 
-        <motion.button
-          className="md:hidden p-2"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          whileTap={{ scale: 0.9 }}
-        >
-          <AnimatePresence mode="wait">
-            {mobileMenuOpen ? (
-              <motion.div
-                key="close"
-                initial={{ rotate: -90, opacity: 0 }}
-                animate={{ rotate: 0, opacity: 1 }}
-                exit={{ rotate: 90, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-              >
-                <X className={scrolled || !isHome ? "text-white" : "text-[#121212]"} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="menu"
+        <div className="md:hidden flex items-center gap-1">
+          <button
+            onClick={cart.openCart}
+            className="relative p-2 cursor-pointer"
+            aria-label={`Open cart${cart.totalCount > 0 ? ` (${cart.totalCount} items)` : ""}`}
+          >
+            <ShoppingCart className={scrolled || !isHome ? "text-white/80" : "text-[#121212]/80"} />
+            {cart.hydrated && cart.totalCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] min-h-[18px] px-1 bg-[#AFFF00] text-[#121212] text-[10px] font-black flex items-center justify-center">
+                {cart.totalCount}
+              </span>
+            )}
+          </button>
+          <motion.button
+            className="p-2"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            whileTap={{ scale: 0.9 }}
+          >
+            <AnimatePresence mode="wait">
+              {mobileMenuOpen ? (
+                <motion.div
+                  key="close"
+                  initial={{ rotate: -90, opacity: 0 }}
+                  animate={{ rotate: 0, opacity: 1 }}
+                  exit={{ rotate: 90, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <X className={scrolled || !isHome ? "text-white" : "text-[#121212]"} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="menu"
                 initial={{ rotate: 90, opacity: 0 }}
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: -90, opacity: 0 }}
@@ -174,8 +191,9 @@ export function Navigation() {
                 <Menu className={scrolled || !isHome ? "text-white" : "text-[#121212]"} />
               </motion.div>
             )}
-          </AnimatePresence>
-        </motion.button>
+            </AnimatePresence>
+          </motion.button>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -189,29 +207,27 @@ export function Navigation() {
           >
             <div className="px-6 py-4 space-y-4">
               {navLinks.map((item, i) => (
-                item.href.startsWith("#") ? (
-                  <motion.button
-                    key={item.label}
-                    onClick={() => handleNavClick(item)}
-                    className="block w-full text-left text-white/80 hover:text-[#AFFF00] text-lg font-medium py-2"
+                <Link
+                  key={item.label}
+                  href={item.href ?? "/"}
+                  onClick={(e) => {
+                    if (item.hash) {
+                      e.preventDefault()
+                      scrollToHash(item.hash)
+                    } else {
+                      setMobileMenuOpen(false)
+                    }
+                  }}
+                >
+                  <motion.span
+                    className="block text-white/80 hover:text-[#AFFF00] text-lg font-medium py-2"
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}
                   >
                     {item.label}
-                  </motion.button>
-                ) : (
-                  <Link key={item.label} href={item.href} onClick={() => setMobileMenuOpen(false)}>
-                    <motion.span
-                      className="block text-white/80 hover:text-[#AFFF00] text-lg font-medium py-2"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.1 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  </Link>
-                )
+                  </motion.span>
+                </Link>
               ))}
               {!isSignedIn ? (
                 <>
@@ -230,7 +246,7 @@ export function Navigation() {
                 </>
               ) : (
                 <div className="flex items-center justify-center py-2">
-                  <UserButton afterSignOutUrl="/" />
+                  <UserButton />
                 </div>
               )}
             </div>

@@ -2,7 +2,10 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, Wine, Dumbbell, Building2, CalendarCheck } from "lucide-react"
+import { ArrowLeft, Wine, Dumbbell, Building2, CalendarCheck, CalendarDays, MapPin, ArrowRight } from "lucide-react"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { ClientOnly } from "@/components/client-only"
 
 const categories = [
   {
@@ -84,7 +87,72 @@ export default function EventsPage() {
             </motion.div>
           ))}
         </div>
+
+        <UpcomingEvents />
       </div>
+    </div>
+  )
+}
+
+const CATEGORY_HREF: Record<string, string> = {
+  tasting: "/events/tasting",
+  gym: "/events/gyms",
+  corporate: "/events/corporate",
+  organizer: "/events/organizers",
+}
+
+function UpcomingEvents() {
+  return (
+    <ClientOnly fallback={null}>
+      <UpcomingEventsContent />
+    </ClientOnly>
+  )
+}
+
+function UpcomingEventsContent() {
+  const upcoming = useQuery(api.events.getUpcoming)
+  const next = upcoming?.slice(0, 3) ?? []
+
+  if (upcoming !== undefined && next.length === 0) return null
+
+  return (
+    <div className="mt-16">
+      <h2 className="text-2xl font-black text-white tracking-tight mb-6">
+        UPCOMING <span className="text-[#AFFF00]">EVENTS</span>
+      </h2>
+      {upcoming === undefined ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-6 h-6 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : (
+        <div className="grid md:grid-cols-3 gap-4">
+          {next.map((event, i) => (
+            <motion.div
+              key={event._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08 }}
+            >
+              <Link href={CATEGORY_HREF[event.category] ?? "/events/tasting"}>
+                <div className="bg-white/5 border border-white/10 p-5 hover:border-[#AFFF00]/40 transition-all duration-300 h-full">
+                  <span className="text-[10px] font-mono uppercase text-[#AFFF00] bg-[#AFFF00]/10 px-2 py-1 inline-block">
+                    {event.category}
+                  </span>
+                  <h3 className="text-white font-bold mt-3 leading-snug">{event.title}</h3>
+                  <div className="space-y-1.5 mt-3 text-white/40 font-mono text-xs">
+                    <p className="flex items-center gap-2"><CalendarDays className="w-3 h-3" />{event.date} · {event.time}</p>
+                    <p className="flex items-center gap-2"><MapPin className="w-3 h-3" />{event.location}</p>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+          <Link href="/events/tasting" className="flex items-center justify-center gap-2 bg-transparent border border-dashed border-white/20 hover:border-[#AFFF00]/60 text-white/40 hover:text-[#AFFF00] p-5 font-mono text-sm transition-all duration-300">
+            See all tasting events
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,7 +2,8 @@
 
 import { motion } from "framer-motion"
 import Link from "next/link"
-import { ArrowLeft, Building2, Coffee, Zap, Users, TrendingUp } from "lucide-react"
+import { ArrowLeft, Coffee, Zap, Users, TrendingUp } from "lucide-react"
+import { InquiryForm } from "@/components/inquiry-form"
 
 const benefits = [
   {
@@ -74,36 +75,10 @@ export default function CorporatePage() {
           <p className="text-white/60 font-mono text-sm mb-6">
             Fill in the form below and our team in Nairobi will get back to you within 24 hours.
           </p>
-          <div className="grid md:grid-cols-2 gap-4">
-            <input
-              placeholder="Your Name"
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-            />
-            <input
-              placeholder="Company Name"
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-            />
-            <input
-              placeholder="Email Address"
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-            />
-            <input
-              placeholder="Phone Number"
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
-            />
-          </div>
-          <textarea
-            placeholder="How many employees? Any specific requirements?"
-            rows={3}
-            className="mt-4 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
+          <InquiryForm
+            category="corporate"
+            messagePlaceholder="How many employees? Any specific requirements?"
           />
-          <motion.button
-            className="mt-4 bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-xl font-bold text-sm tracking-wide"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            Get Quote
-          </motion.button>
         </motion.div>
       </div>
     </div>

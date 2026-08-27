@@ -1,10 +1,13 @@
 "use client"
 
-import { motion, useInView } from "framer-motion"
+import { motion, useInView, type Variants } from "framer-motion"
 import { useState, useRef } from "react"
 import Link from "next/link"
+import { useMutation } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { toast } from "sonner"
 
-const containerVariants = {
+const containerVariants: Variants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
@@ -15,7 +18,7 @@ const containerVariants = {
   },
 }
 
-const itemVariants = {
+const itemVariants: Variants = {
   hidden: { opacity: 0, y: 15 },
   visible: {
     opacity: 1,
@@ -34,28 +37,63 @@ export function Footer() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const footerRef = useRef(null)
   const isInView = useInView(footerRef, { once: true, margin: "-100px" })
+  const subscribe = useMutation(api.newsletter.subscribe)
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
+    if (isSubmitting) return
     setIsSubmitting(true)
-    setTimeout(() => setIsSubmitting(false), 2000)
+    try {
+      const result = await subscribe({ email })
+      if (result.alreadySubscribed) {
+        toast.info("You're already on the list — energy's coming.")
+      } else {
+        toast.success("You're in! Welcome to the GiGi crew.")
+      }
+      setEmail("")
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const footerLinks = [
     {
-      title: "Products",
-      links: ["Lemon Lime", "Pineapple Coconut", "Mystery", "Bundles"],
+      title: "Shop",
+      links: [
+        { label: "All Cases & Packs", href: "/shop" },
+        { label: "Taster 6-Pack", href: "/shop" },
+        { label: "Flavour 12-Packs", href: "/shop" },
+        { label: "Mixed 24 Case", href: "/shop" },
+      ],
     },
     {
       title: "Quick Links",
-      links: ["Home", "Flavours", "Creators", "Distributors"],
+      links: [
+        { label: "Home", href: "/" },
+        { label: "Flavours", href: "/flavours" },
+        { label: "Events", href: "/events" },
+        { label: "Distributors", href: "/distributors" },
+        { label: "Partner Gyms", href: "/events/gyms" },
+      ],
     },
     {
       title: "Company",
-      links: ["About", "Careers", "Press", "Contact"],
+      links: [
+        { label: "About Us", href: "/about" },
+        { label: "Careers", href: "/careers" },
+        { label: "Contact", href: "/contact" },
+        { label: "Support Us", href: "/support" },
+        { label: "GiGi Club", href: "/subscribe" },
+      ],
     },
     {
       title: "Legal",
-      links: ["Privacy Policy", "Terms of Service", "Cookie Policy"],
+      links: [
+        { label: "Privacy Policy", href: "/legal/privacy" },
+        { label: "Terms of Service", href: "/legal/terms" },
+        { label: "Cookie Policy", href: "/legal/cookies" },
+      ],
     },
   ]
 
@@ -98,13 +136,21 @@ export function Footer() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="max-w-xl mx-auto mb-12"
         >
-          <div className="flex flex-col sm:flex-row gap-3">
+          <form
+            className="flex flex-col sm:flex-row gap-3"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void handleSubmit()
+            }}
+          >
             <motion.div className="flex-1 relative" whileFocus={{ scale: 1.02 }}>
               <motion.input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
+                disabled={isSubmitting}
                 className="w-full bg-white/5 border-2 border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-all duration-300"
                 whileFocus={{ borderColor: "#AFFF00" }}
               />
@@ -114,11 +160,12 @@ export function Footer() {
               />
             </motion.div>
             <motion.button
-              className="bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-xl font-bold text-sm tracking-wide whitespace-nowrap relative overflow-hidden"
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-[#AFFF00] disabled:opacity-60 text-[#121212] px-6 py-3 rounded-xl font-bold text-sm tracking-wide whitespace-nowrap relative overflow-hidden"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              onClick={handleSubmit}
             >
               <motion.div
                 className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
@@ -134,7 +181,7 @@ export function Footer() {
                 {isSubmitting ? "Joining..." : "Get 25% Off"}
               </motion.span>
             </motion.button>
-          </div>
+          </form>
           <motion.p
             className="text-white/40 font-mono text-xs mt-2 text-center"
             initial={{ opacity: 0 }}
@@ -165,18 +212,18 @@ export function Footer() {
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
-          {footerLinks.map((section, sectionIndex) => (
+          {footerLinks.map((section) => (
             <motion.div key={section.title} variants={itemVariants}>
               <h4 className="font-bold text-white text-sm mb-3">{section.title}</h4>
               <ul className="space-y-2">
                 {section.links.map((item) => (
-                  <li key={item}>
+                  <li key={item.label}>
                     <motion.div whileHover={{ x: 4 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
                       <Link
-                        href="#"
+                        href={item.href}
                         className="text-white/60 hover:text-[#AFFF00] font-mono text-xs transition-colors inline-block"
                       >
-                        {item}
+                        {item.label}
                       </Link>
                     </motion.div>
                   </li>
