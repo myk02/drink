@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -41,6 +41,16 @@ export default function ShopPage() {
 
 function ShopContent() {
   const products = useQuery(api.products.getActive)
+  // A dead/unreachable Convex deployment never resolves useQuery — the page
+  // would spin forever looking like an empty store. After 15s without data,
+  // surface an explicit offline state instead of an infinite spinner.
+  const [loadTimedOut, setLoadTimedOut] = useState(false)
+  useEffect(() => {
+    if (products !== undefined) return
+    const t = window.setTimeout(() => setLoadTimedOut(true), 15000)
+    return () => window.clearTimeout(t)
+  }, [products])
+  const storeOffline = loadTimedOut && products === undefined
   const sortedRaw = useMemo(() => (products ? [...products].sort((a, b) => a.sortOrder - b.sortOrder) : undefined), [products])
   const cart = useCart()
   const wishlist = useWishlist()
@@ -214,7 +224,7 @@ function ShopContent() {
             <SlidersHorizontal className="w-4 h-4" /> Filter{activeCount ? ` (${activeCount})` : ""}
           </button>
           <div className="hidden md:flex items-center gap-2 text-white/60 font-mono text-xs">
-            <span aria-live="polite">{filtered ? `${filtered.length} products` : "—"}</span>
+            <span aria-live="polite">{storeOffline ? "Store offline" : filtered ? `${filtered.length} products` : "—"}</span>
             {activeCount > 0 && (
               <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }} className="text-[#AFFF00] hover:underline ml-2 cursor-pointer">
                 Clear all
@@ -298,14 +308,25 @@ function ShopContent() {
               </div>
             )}
 
-            {!filtered && (
+            {storeOffline && (
+              <div className="text-center py-16 bg-white/5 border border-red-500/30" role="alert">
+                <Zap className="w-10 h-10 text-red-400 mx-auto mb-4" />
+                <p className="text-white font-bold">Can’t reach the store right now</p>
+                <p className="text-white/40 font-mono text-sm mt-1 max-w-md mx-auto">
+                  Products couldn’t load. Your cart is saved locally — check your connection and retry.
+                </p>
+                <button onClick={() => window.location.reload()} className="mt-4 bg-[#AFFF00] text-[#121212] font-bold text-sm px-4 py-2 hover:opacity-90 transition-opacity cursor-pointer">Retry</button>
+              </div>
+            )}
+
+            {!storeOffline && !filtered && (
               <div className="flex items-center justify-center py-20" role="status" aria-label="Loading products">
                 <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
                 <span className="sr-only">Loading products…</span>
               </div>
             )}
 
-            {filtered?.length === 0 && (
+            {!storeOffline && filtered?.length === 0 && (
               <div className="text-center py-16 bg-white/5 border border-white/10">
                 <ShoppingBag className="w-10 h-10 text-[#AFFF00]/40 mx-auto mb-4" />
                 <p className="text-white font-bold">No products match that filter</p>

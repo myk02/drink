@@ -62,6 +62,21 @@ npm run lint    # eslint
 npm start       # serve production build
 ```
 
+## Deployment notes (Vercel + Convex)
+
+`NEXT_PUBLIC_CONVEX_URL` is baked into the client bundle at build time, so the
+Vercel project's env var must point at a **live** Convex deployment. If the
+shop shows an endless spinner with `0` product counts, the deployed site is
+talking to a deleted/stale deployment.
+
+**2026-10-01 incident:** the Vercel env var pointed at a deleted deployment
+(`happy-otter-123`), so the live shop showed 0 products forever. Fix: in
+Vercel → gigi → Settings → Environment Variables, set
+`NEXT_PUBLIC_CONVEX_URL=https://judicious-meadowlark-323.convex.cloud` (and
+`NEXT_PUBLIC_CONVEX_SITE_URL=https://judicious-meadowlark-323.convex.site`),
+then redeploy. Verify a deployment's functions/URL with
+`npx convex function-spec` or by curling `<url>/api/query`.
+
 ---
 
 Built by [Mike Waitindi](https://mikeships.vercel.app).
