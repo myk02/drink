@@ -283,6 +283,43 @@ export const getRecentForReference = query({
 
 export const getMySubscription = query({
   args: {},
+  returns: v.union(
+    v.null(),
+    v.object({
+      subscription: v.null(),
+      plan: v.null(),
+      history: v.array(v.object({
+        _id: v.id("billingEvents"),
+        type: v.string(),
+        amountKes: v.union(v.number(), v.null()),
+        detail: v.union(v.string(), v.null()),
+        createdAt: v.number(),
+      })),
+    }),
+    v.object({
+      subscription: v.object({
+        _id: v.id("subscriptions"),
+        status: v.union(v.literal("pending"), v.literal("active"), v.literal("past_due"), v.literal("paused"), v.literal("cancelled")),
+        planSlug: v.string(),
+        paymentChannel: v.union(v.literal("card"), v.literal("mobile_money"), v.literal("unknown")),
+        nextBillingDate: v.union(v.number(), v.null()),
+        failedChargeCount: v.number(),
+        lastRenewalCheckoutUrl: v.union(v.string(), v.null()),
+        startedAt: v.number(),
+      }),
+      plan: v.union(
+        v.object({ name: v.string(), description: v.string(), amountKes: v.number(), perks: v.array(v.string()) }),
+        v.null()
+      ),
+      history: v.array(v.object({
+        _id: v.id("billingEvents"),
+        type: v.string(),
+        amountKes: v.union(v.number(), v.null()),
+        detail: v.union(v.string(), v.null()),
+        createdAt: v.number(),
+      })),
+    })
+  ),
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity()
     if (!identity) return null
@@ -290,7 +327,7 @@ export const getMySubscription = query({
       .query("users")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
       .first()
-    const email = user?.email?.trim().toLowerCase()
+    const email = (user?.email ?? (identity.emailVerified ? identity.email : undefined))?.trim().toLowerCase()
     if (!email) return null
 
     const rows = await ctx.db
@@ -300,7 +337,7 @@ export const getMySubscription = query({
     const sub = rows.sort((a, b) => b.startedAt - a.startedAt)[0]
     // Return cancelled subs too (with history) so members can see past billing
     // instead of a misleading "not in club yet".
-    if (!sub) return { subscription: null }
+    if (!sub) return { subscription: null, plan: null, history: [] }
 
     const plan = await ctx.db
       .query("plans")

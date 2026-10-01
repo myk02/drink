@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { useAuth, UserButton, SignInButton as ClerkSignInButton } from "@clerk/nextjs"
-import { useQuery, useAction } from "convex/react"
+import { useQuery, useAction, useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import {
   ArrowLeft,
@@ -48,11 +48,29 @@ const EVENT_LABELS: Record<string, string> = {
 function PortalContent() {
   const { isSignedIn, isLoaded } = useAuth()
   const data = useQuery(api.subscriptions.getMySubscription)
+  const ensureMe = useMutation(api.auth.ensureMe)
   const pause = useAction(api.payments.pauseMySubscription)
   const resume = useAction(api.payments.resumeMySubscription)
   const cancel = useAction(api.payments.cancelMySubscription)
   const [busy, setBusy] = useState<string | null>(null)
   const [showCancelPanel, setShowCancelPanel] = useState(false)
+  const [profileSync, setProfileSync] = useState<"pending" | "ready" | "error">("pending")
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return
+    let cancelled = false
+    setProfileSync("pending")
+    void ensureMe({})
+      .then(() => {
+        if (!cancelled) setProfileSync("ready")
+      })
+      .catch(() => {
+        if (!cancelled) setProfileSync("error")
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [ensureMe, isLoaded, isSignedIn])
 
   if (!isLoaded) {
     return <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin mx-auto my-16" role="status" aria-label="Loading account" />
@@ -73,19 +91,29 @@ function PortalContent() {
   }
 
   if (data === null) {
+    if (profileSync === "pending") {
+      return <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin mx-auto my-16" role="status" aria-label="Syncing account" />
+    }
+
     return (
       <div className="bg-white/5 border border-white/10 p-10 text-center max-w-lg mx-auto">
         <AlertTriangle className="w-8 h-8 text-[#f59e0b] mx-auto mb-4" />
         <p className="text-white/60 font-mono text-sm leading-relaxed">
-          We couldn&apos;t find an account record linked to your sign-in yet. If you just created this account,
-          give it a minute and reload — membership records sync automatically.
-          Still stuck? <a href="mailto:support@gigi.energy" className="text-[#AFFF00] hover:underline">support@gigi.energy</a>
+          {profileSync === "error"
+            ? "We couldn’t sync your account right now. Check your connection and try again. If it keeps happening, contact "
+            : "Your account is ready, but we couldn’t load its membership details. If you have an active membership, contact "}
+          <a href="mailto:support@gigi.energy" className="text-[#AFFF00] hover:underline">support@gigi.energy</a>.
         </p>
         <button
-          onClick={() => window.location.reload()}
+          onClick={() => {
+            setProfileSync("pending")
+            void ensureMe({})
+              .then(() => setProfileSync("ready"))
+              .catch(() => setProfileSync("error"))
+          }}
           className="mt-6 inline-block bg-white/10 text-white px-6 py-3 font-bold text-sm tracking-wide hover:bg-white/20 transition-colors cursor-pointer"
         >
-          Reload
+          Retry
         </button>
       </div>
     )
