@@ -148,7 +148,9 @@ export default defineSchema({
     amountKes: v.optional(v.number()),
     detail: v.optional(v.string()),
     createdAt: v.number(),
-  }).index("by_subscriptionId", ["subscriptionId"]),
+  })
+    .index("by_subscriptionId", ["subscriptionId"])
+    .index("by_reference", ["reference"]),
 
   donations: defineTable({
     reference: v.string(),

@@ -27,7 +27,6 @@ import {
   Phone,
   Mail,
   MessageCircle,
-  Download,
   Calculator,
   Check,
   X,
@@ -317,23 +316,6 @@ function DistributorsContent() {
     }
   }
 
-  const downloadDeck = () => {
-    const content = `GIGI ENERGY - TRADE DECK 2026
-Wholesale price KSh 80-90/can | Retail KSh 150 | Margin 40%
-Starter 5 cases KSh 10,800 | Growth 12 KSh 24,200 | Pro 25 KSh 48,000
-MOQ 5 cases | Restock 48h Nairobi | KEBS certified | 10 flavours
-Contact: distribution@gigi.energy | WhatsApp +254 700 000 000
-Learn more: ${SITE_URL}/distributors`
-    const blob = new Blob([content], { type: "text/plain" })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement("a")
-    a.href = url
-    a.download = "GiGi-Trade-Deck-2026.txt"
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success("Trade one-pager downloaded (.txt) — full designed PDF coming soon. Check your downloads.")
-  }
-
   return (
     <div className="min-h-screen bg-[#121212]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(distributorsJsonLd) }} />
@@ -373,16 +355,9 @@ Learn more: ${SITE_URL}/distributors`
               <a href="#apply" className="bg-[#AFFF00] text-[#121212] px-6 py-3.5 font-black text-sm inline-flex items-center gap-2 hover:opacity-90 transition-opacity">
                 Apply to stock — 2 min <ArrowRight className="w-4 h-4" />
               </a>
-              <a
-                href="https://wa.me/254700000000?text=Hi%20GiGi%20team%2C%20I%20want%20to%20stock%20GiGi%20at%20my%20outlet"
-                target="_blank"
-                className="bg-white text-[#121212] px-6 py-3.5 font-bold text-sm inline-flex items-center gap-2 hover:bg-white/90 transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" /> WhatsApp rep
+              <a href="#apply" className="border border-white/10 text-white px-6 py-3.5 font-bold text-sm inline-flex items-center gap-2 hover:border-[#AFFF00]/50 transition-colors">
+                Request current trade details <ArrowRight className="w-4 h-4" />
               </a>
-              <button onClick={downloadDeck} className="border border-white/10 text-white px-6 py-3.5 font-bold text-sm inline-flex items-center gap-2 hover:border-[#AFFF00]/50 transition-colors cursor-pointer">
-                <Download className="w-4 h-4" /> Trade deck
-              </button>
             </div>
             <div className="flex flex-wrap gap-2 mt-6">
               {["KEBS certified", "KSh 90/can wholesale", "No exclusivity", "Swap slow flavours free"].map((t) => (
@@ -417,10 +392,10 @@ Learn more: ${SITE_URL}/distributors`
               </div>
               <div className="mt-4 space-y-2 text-[11px] font-mono">
                 <div className="flex items-center gap-2 text-white/60">
-                  <Phone className="w-3.5 h-3.5 text-[#AFFF00]" /> +254 700 000 000 (Mon–Sat 8a–6p)
+                  <Phone className="w-3.5 h-3.5 text-[#AFFF00]" /> Share your number in the form and the team can contact you
                 </div>
                 <div className="flex items-center gap-2 text-white/60">
-                  <Mail className="w-3.5 h-3.5 text-[#AFFF00]" /> distribution@gigi.energy — 24h reply
+                  <Mail className="w-3.5 h-3.5 text-[#AFFF00]" /> Request a trade quote using the form below
                 </div>
                 <div className="flex items-center gap-2 text-white/60">
                   <MapPin className="w-3.5 h-3.5 text-[#AFFF00]" /> Industrial Area, Nairobi — cold-chain storage
@@ -504,7 +479,7 @@ Learn more: ${SITE_URL}/distributors`
             </div>
             <div className="mt-6 bg-[#AFFF00] text-[#121212] p-4 flex flex-wrap items-center justify-between gap-3">
               <span className="font-mono text-xs font-bold">Need 50+ cases or pallet? Custom pallet quote in 3 hours.</span>
-              <a href="https://wa.me/254700000000?text=Need%20pallet%20quote%20for%20GiGi" target="_blank" className="bg-[#121212] text-[#AFFF00] px-4 py-2 font-black text-xs inline-flex items-center gap-2">
+              <a href="#apply" className="bg-[#121212] text-[#AFFF00] px-4 py-2 font-black text-xs inline-flex items-center gap-2">
                 <Truck className="w-3.5 h-3.5" /> Get pallet price
               </a>
             </div>
@@ -754,7 +729,7 @@ Learn more: ${SITE_URL}/distributors`
             ))}
           </Accordion>
           <p className="text-white/30 font-mono text-xs mt-3">
-            Still unsure? <a href="https://wa.me/254700000000" target="_blank" className="text-[#AFFF00] hover:underline">Chat on WhatsApp</a> or <Link href="/contact" className="text-[#AFFF00] hover:underline">email distribution@gigi.energy</Link>
+            Still unsure? <Link href="/contact" className="text-[#AFFF00] hover:underline">Get in touch with the GiGi team</Link> or use the application form below.
           </p>
         </div>
 
@@ -965,13 +940,6 @@ Learn more: ${SITE_URL}/distributors`
                   {isSubmitting ? "Sending..." : "Submit application"}
                   {!isSubmitting && <ArrowRight className="w-4 h-4" />}
                 </button>
-                <a
-                  href="https://wa.me/254700000000?text=Hi%20GiGi%20distribution%20team"
-                  target="_blank"
-                  className="border border-white/10 text-white px-6 py-3.5 font-bold text-sm inline-flex items-center gap-2 hover:border-[#AFFF00]/30"
-                >
-                  <MessageCircle className="w-4 h-4" /> Or WhatsApp
-                </a>
               </div>
               <p className="text-white/20 font-mono text-[11px]">By applying you agree we can call/WhatsApp on the number you gave. No spam.</p>
             </form>
@@ -979,21 +947,12 @@ Learn more: ${SITE_URL}/distributors`
         </motion.div>
 
         {/* Contact strip */}
-        <div className="max-w-5xl mx-auto mt-6 grid md:grid-cols-3 gap-3">
-          {[
-            { icon: Phone, t: "Call", d: "+254 700 000 000", a: "tel:+254700000000" },
-            { icon: MessageCircle, t: "WhatsApp", d: "Chat in 2 min", a: "https://wa.me/254700000000" },
-            { icon: Mail, t: "Email", d: "distribution@gigi.energy", a: "mailto:distribution@gigi.energy" },
-          ].map((x) => (
-            <a key={x.t} href={x.a} target={x.a.startsWith("http") ? "_blank" : undefined} className="bg-white/5 border border-white/10 p-4 flex items-center gap-3 hover:border-[#AFFF00]/30 transition-colors">
-              <x.icon className="w-5 h-5 text-[#AFFF00]" />
-              <div>
-                <p className="text-white font-bold text-xs">{x.t}</p>
-                <p className="text-white/60 font-mono text-xs">{x.d}</p>
-              </div>
-              <ArrowRight className="w-4 h-4 text-white/20 ml-auto" />
-            </a>
-          ))}
+        <div className="max-w-5xl mx-auto mt-6">
+          <Link href="/contact" className="bg-white/5 border border-white/10 p-4 flex items-center gap-3 hover:border-[#AFFF00]/30 transition-colors">
+            <MessageCircle className="w-5 h-5 text-[#AFFF00]" />
+            <span className="text-white font-bold text-sm">Questions about distribution? Contact GiGi</span>
+            <ArrowRight className="w-4 h-4 text-white/40 ml-auto" />
+          </Link>
         </div>
       </div>
     </div>

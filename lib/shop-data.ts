@@ -2,25 +2,8 @@ import type { Doc } from "@/convex/_generated/dataModel"
 
 export type Product = Doc<"products">
 
-// Static enrichment – 2026 best practice: ratings visible on every card (social proof)
-export const PRODUCT_RATINGS: Record<string, { rating: number; count: number; badge?: "Bestseller" | "Low stock" | "New" | "Staff pick" }> = {
-  "taster-6": { rating: 4.9, count: 312, badge: "Bestseller" },
-  "mixed-24": { rating: 4.8, count: 278, badge: "Staff pick" },
-  // single 12-packs – arbitrary but plausible
-  "lemon-lime-12": { rating: 4.7, count: 143 },
-  "pineapple-coconut-12": { rating: 4.8, count: 201, badge: "Bestseller" },
-  "mango-passion-12": { rating: 4.8, count: 189 },
-  "baobab-berry-12": { rating: 4.6, count: 98 },
-  "tamarind-ginger-12": { rating: 4.5, count: 76 },
-  "watermelon-mint-12": { rating: 4.7, count: 112 },
-  "hibiscus-raspberry-12": { rating: 4.6, count: 84 },
-  "guava-chili-12": { rating: 4.4, count: 61 },
-  "passion-lemonade-12": { rating: 4.7, count: 134 },
-  "blackcurrant-acai-12": { rating: 4.5, count: 69 },
-}
-
-export function getRating(slug: string) {
-  return PRODUCT_RATINGS[slug] ?? { rating: 4.7, count: 43 }
+export function flavorPackSlug(flavorSlug: string) {
+  return `${flavorSlug}-12`
 }
 
 export function getStockStatus(product: Product): { label: string; tone: "in" | "low" | "out" } {
@@ -29,10 +12,7 @@ export function getStockStatus(product: Product): { label: string; tone: "in" | 
     if (product.stock <= 5) return { label: `Only ${product.stock} left`, tone: "low" }
     return { label: "In stock", tone: "in" }
   }
-  // demo: mixed & taster are lower stock to create urgency without fake scarcity
-  if (product.slug === "taster-6" || product.slug === "mixed-24") return { label: "In stock — ships today", tone: "in" }
-  if (product.slug.includes("guava") || product.slug.includes("tamarind")) return { label: "Only 8 left", tone: "low" }
-  return { label: "In stock", tone: "in" }
+  return { label: "Available", tone: "in" }
 }
 
 export const SORT_OPTIONS = [
@@ -74,6 +54,20 @@ export const CAN_FILTERS = [
   { value: "6", label: "6 cans" },
   { value: "12", label: "12 cans" },
   { value: "24", label: "24 cans" },
+] as const
+
+export const FLAVOR_FILTERS = [
+  { value: "all", label: "All flavours" },
+  { value: "Lemon Lime", label: "Lemon Lime" },
+  { value: "Pineapple Coconut", label: "Pineapple Coconut" },
+  { value: "Mango Passion", label: "Mango Passion" },
+  { value: "Baobab Berry", label: "Baobab Berry" },
+  { value: "Tamarind Ginger", label: "Tamarind Ginger" },
+  { value: "Watermelon Mint", label: "Watermelon Mint" },
+  { value: "Hibiscus Raspberry", label: "Hibiscus Raspberry" },
+  { value: "Guava Chili", label: "Guava Chili" },
+  { value: "Passion Lemonade", label: "Passion Lemonade" },
+  { value: "Blackcurrant Acai", label: "Blackcurrant Acai" },
 ] as const
 
 export const PRODUCT_FAQS = [

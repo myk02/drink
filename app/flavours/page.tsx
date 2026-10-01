@@ -9,6 +9,8 @@ import { ArrowLeft, ShoppingCart } from "lucide-react"
 import { ClientOnly } from "@/components/client-only"
 import { AddToCartButton } from "@/components/cart-drawer"
 import { flavorProfiles } from "@/lib/flavors"
+import { flavorPackSlug } from "@/lib/shop-data"
+import { formatKes } from "@/lib/delivery"
 import type { Doc } from "@/convex/_generated/dataModel"
 
 function FlavoursContent() {
@@ -32,7 +34,7 @@ function FlavoursContent() {
             <span className="text-[#AFFF00]">FUEL</span>
           </h1>
           <p className="text-white/60 font-mono text-sm mt-4 max-w-xl">
-            Made in Nairobi, Kenya. Every flavour is crafted with natural ingredients and zero sugar.
+            Choose a flavour, add the 12-pack to your cart, then pay with M-Pesa or card. Zero sugar, 75 mg caffeine, made in Nairobi.
           </p>
         </motion.div>
 
@@ -56,7 +58,7 @@ function FlavoursContent() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden group hover:border-[#AFFF00]/30 transition-all duration-500"
+              className="bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden group hover:border-[#AFFF00]/40 transition-all duration-500"
             >
               <div className="relative aspect-square overflow-hidden" style={{ backgroundColor: `${flavor.accent}10` }}>
                 <motion.div
@@ -72,14 +74,11 @@ function FlavoursContent() {
                 />
               </div>
               <div className="p-6">
-                <div className="flex items-start justify-between mb-2">
+                <div className="flex items-start justify-between mb-2 gap-3">
                   <div>
                     <h3 className="text-xl font-bold text-white">{flavor.name}</h3>
                     <p className="text-sm font-mono" style={{ color: flavor.accent }}>{flavor.tagline}</p>
                   </div>
-                  {flavor.price && (
-                    <span className="text-white/50 font-mono text-xs text-right">Single can<br /><span className="text-white font-bold text-lg">KSh {flavor.price}</span></span>
-                  )}
                 </div>
                 <p className="text-white/60 text-sm font-mono mt-3 leading-relaxed">{flavor.description}</p>
                 <div className="flex flex-wrap gap-2 mt-4">
@@ -93,7 +92,16 @@ function FlavoursContent() {
                   ))}
                 </div>
                 {(() => {
-                  const pack = products?.find((p: Doc<"products">) => p.type === "single" && p.flavorName?.toLowerCase() === flavor.name.toLowerCase())
+                  const pack = products?.find(
+                    (p: Doc<"products">) =>
+                      p.slug === flavorPackSlug(flavor.slug) ||
+                      (p.type === "single" && p.flavorName?.toLowerCase() === flavor.name.toLowerCase())
+                  )
+                  if (products === undefined) {
+                    return (
+                      <div className="mt-6 h-12 bg-white/10 animate-pulse" aria-hidden="true" />
+                    )
+                  }
                   return pack ? (
                     <div className="mt-6 space-y-2">
                       <AddToCartButton
@@ -106,10 +114,10 @@ function FlavoursContent() {
                           priceKes: pack.priceKes,
                           compareAtKes: pack.compareAtKes,
                         }}
-                        label={`Add 12-Pack · KSh ${pack.priceKes.toLocaleString("en-KE")}`}
+                        label={`Add 12-Pack · ${formatKes(pack.priceKes)}`}
                       />
                       <Link href={`/shop/${pack.slug}`} className="block text-center text-white/40 hover:text-[#AFFF00] font-mono text-xs transition-colors">
-                        View 12-pack details →
+                        View pack details →
                       </Link>
                     </div>
                   ) : (

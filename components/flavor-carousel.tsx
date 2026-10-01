@@ -7,7 +7,14 @@ import { useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 import { flavorProfiles } from "@/lib/flavors"
+import { flavorPackSlug } from "@/lib/shop-data"
+import { AddToCartButton } from "@/components/cart-drawer"
+import { ClientOnly } from "@/components/client-only"
+import { formatKes } from "@/lib/delivery"
+import type { Doc } from "@/convex/_generated/dataModel"
 
 const flavors = flavorProfiles
 
@@ -43,9 +50,23 @@ const slideVariants: Variants = {
 }
 
 export function FlavorCarousel() {
+  return (
+    <ClientOnly>
+      <FlavorCarouselContent />
+    </ClientOnly>
+  )
+}
+
+function FlavorCarouselContent() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [[page, direction], setPage] = useState([0, 0])
+  const products = useQuery(api.products.getActive)
   const currentFlavor = flavors[currentIndex]
+  const currentPack = products?.find(
+    (p: Doc<"products">) =>
+      p.slug === flavorPackSlug(currentFlavor.slug) ||
+      (p.type === "single" && p.flavorName?.toLowerCase() === currentFlavor.name.toLowerCase())
+  )
 
   const rotateX = useSpring(0, { stiffness: 150, damping: 20 })
   const rotateY = useSpring(0, { stiffness: 150, damping: 20 })
@@ -227,23 +248,42 @@ export function FlavorCarousel() {
                         ))}
                       </motion.div>
 
-                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                        <Link href={`/flavours#${currentFlavor.slug}`}>
-                          <motion.button
-                            className="px-6 py-3 rounded-full font-bold text-sm tracking-wide w-full md:w-auto relative overflow-hidden cursor-pointer"
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      {currentPack && (
+                        <p className="font-mono text-sm text-[#121212]/70">
+                          12-pack · <span className="font-bold text-[#121212]">{formatKes(currentPack.priceKes)}</span>
+                        </p>
+                      )}
+
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row gap-2">
+                        {currentPack ? (
+                          <div className="flex-1">
+                            <AddToCartButton
+                              product={{
+                                _id: currentPack._id,
+                                name: currentPack.name,
+                                slug: currentPack.slug,
+                                image: currentPack.image,
+                                canCount: currentPack.canCount,
+                                priceKes: currentPack.priceKes,
+                                compareAtKes: currentPack.compareAtKes,
+                              }}
+                              label={`Add 12-Pack · ${formatKes(currentPack.priceKes)}`}
+                            />
+                          </div>
+                        ) : (
+                          <Link
+                            href={`/shop/${currentFlavor.slug}-12`}
+                            className="flex-1 px-6 py-3 font-bold text-sm tracking-wide text-center"
                             style={{ backgroundColor: currentFlavor.accent, color: "#121212" }}
                           >
-                            <motion.span
-                              className="absolute inset-0 bg-white/20"
-                              initial={{ x: "-100%" }}
-                              whileHover={{ x: "100%" }}
-                              transition={{ duration: 0.5 }}
-                            />
-                            <span className="relative z-10">View Flavour</span>
-                          </motion.button>
+                            Shop 12-Pack
+                          </Link>
+                        )}
+                        <Link
+                          href={`/flavours#${currentFlavor.slug}`}
+                          className="flex-1 px-6 py-3 font-bold text-sm tracking-wide text-center border-2 border-[#121212] text-[#121212]"
+                        >
+                          Flavour details
                         </Link>
                       </motion.div>
                     </div>

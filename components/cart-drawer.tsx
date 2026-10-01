@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { useCart } from "@/components/cart-provider"
 import { formatKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
@@ -99,7 +100,7 @@ export function CartDrawer() {
                           <div className="flex items-start justify-between gap-2">
                             <div>
                               <h3 className="text-white font-bold text-sm leading-snug">{item.name}</h3>
-                              <p className="text-white/40 font-mono text-xs mt-0.5">{item.canCount} cans</p>
+                              <p className="text-white/40 font-mono text-xs mt-0.5">{item.canCount} cans · {formatKes(item.priceKes)} each</p>
                             </div>
                             <button
                               onClick={() => removeItem(item.productId)}
@@ -172,6 +173,13 @@ export function CartDrawer() {
                   >
                     Checkout — {formatKes(subtotalKes)}
                   </Link>
+                  <Link
+                    href="/shop"
+                    onClick={closeCart}
+                    className="block w-full text-center text-white/50 hover:text-[#AFFF00] font-mono text-xs py-1"
+                  >
+                    Continue shopping
+                  </Link>
                   <p className="text-white/20 font-mono text-[11px] text-center">M-Pesa or card via Paystack • 1–2 day Nairobi</p>
                 </div>
               </>
@@ -203,6 +211,7 @@ export function AddToCartButton({
   disabled?: boolean
 }) {
   const { addItem, openCart } = useCart()
+  const router = useRouter()
 
   const handleAdd = () => {
     if (disabled) return
@@ -216,8 +225,9 @@ export function AddToCartButton({
       compareAtKes: product.compareAtKes,
     })
     toast.success(`${product.name} added to cart`, {
-      action: { label: "View Cart", onClick: openCart },
+      action: { label: "Checkout", onClick: () => router.push("/checkout") },
     })
+    openCart()
   }
 
   return (

@@ -9,7 +9,7 @@ import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
 import { ClientOnly } from "@/components/client-only"
 import { SITE_URL } from "@/lib/site"
-import { MOCK_EVENTS, type GiGiEvent, AREAS, googleCalendarUrl } from "@/lib/events-data"
+import { type GiGiEvent, AREAS, googleCalendarUrl } from "@/lib/events-data"
 import type { Id } from "@/convex/_generated/dataModel"
 import {
   ArrowLeft,
@@ -24,7 +24,6 @@ import {
   Search,
   Grid3X3,
   List,
-  Map,
   Bookmark,
   BookmarkCheck,
   Share2,
@@ -74,15 +73,15 @@ const dateFilters = [
 const faqs = [
   {
     q: "Are tasting events really free?",
-    a: "Yes — 100% free. Walk in, sample all 10 flavours, get 25% off your first shop order. No catch, no spam. We just want you to taste Kenya’s energy drink.",
+    a: "The price is shown on each event. Free tastings are marked Free, and the event card shows whether registration is open.",
   },
   {
     q: "Do I need to register or can I walk in?",
-    a: "Walk-ins welcome, but registering saves your spot and gets you a fast-track QR. Capacities are real — CBD pop-ups fill up by 2pm. Register in 30 seconds.",
+    a: "Check the event details before you go. When registration is open, submit the form to reserve one place; current capacity is shown on the event card.",
   },
   {
     q: "Can I bring friends or team?",
-    a: "Absolutely. Tastings are social — bring friends. Corporate groups: use the Corporate page for bulk fridge drops. Gym partners: show your membership for extra samples.",
+    a: "Check the event capacity and contact the organizer if you’re bringing a group. Businesses can use the Corporate page to request a quote.",
   },
   {
     q: "What about gym and corporate events?",
@@ -94,7 +93,7 @@ const faqs = [
   },
   {
     q: "Can I add events to my calendar?",
-    a: "Yes — every card has Add to Google Calendar. After registering you’ll also get email + SMS reminder 24h before.",
+    a: "Yes — use Add to Google Calendar on an event card. Registration is confirmed on this page; contact us if you need help with a booking.",
   },
 ]
 
@@ -121,7 +120,7 @@ function EventsContent() {
   const [cat, setCat] = useState<(typeof categories)[number]["value"]>("all")
   const [area, setArea] = useState<(typeof AREAS)[number]>("All Areas")
   const [dateFilter, setDateFilter] = useState<(typeof dateFilters)[number]["value"]>("all")
-  const [view, setView] = useState<"grid" | "list" | "map">("grid")
+  const [view, setView] = useState<"grid" | "list">("grid")
   const [sort, setSort] = useState<"soonest" | "popular">("soonest")
   const [showBookmarkedOnly, setShowBookmarkedOnly] = useState(false)
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
@@ -146,10 +145,11 @@ function EventsContent() {
     }
   }, [activeModal])
 
-  // Merge: prefer convex if has data, else mock
+  // Only show events scheduled in the database. Stale sample events cannot be
+  // booked, so presenting them as live events would mislead customers.
   const allEvents: GiGiEvent[] = useMemo(() => {
-    if (convexEvents && convexEvents.length > 0) {
-      return convexEvents.map((e: { _id: string; title: string; description: string; date: string; time: string; location: string; category: GiGiEvent["category"]; status: GiGiEvent["status"]; capacity: number; registered: number; image?: string | null }) => ({
+    if (!convexEvents) return []
+    return convexEvents.map((e: { _id: string; title: string; description: string; date: string; time: string; location: string; category: GiGiEvent["category"]; status: GiGiEvent["status"]; capacity: number; registered: number; image?: string | null }) => ({
         _id: e._id,
         title: e.title,
         description: e.description,
@@ -164,8 +164,6 @@ function EventsContent() {
         image: e.image ?? "/images/flavours/lemon-lime.png",
         price: e.status === "completed" ? "Past" : "Free",
       }))
-    }
-    return MOCK_EVENTS
   }, [convexEvents])
 
   const filtered = useMemo(() => {
@@ -202,6 +200,7 @@ function EventsContent() {
   const featured = useMemo(() => filtered.find((e) => e.featured && e.status === "upcoming") ?? filtered.find((e) => e.status === "upcoming"), [filtered])
   const upcoming = filtered.filter((e) => e.status === "upcoming" || e.status === "ongoing")
   const past = filtered.filter((e) => e.status === "completed")
+  const nextEvent = [...upcoming].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
 
   const share = async (ev: GiGiEvent) => {
     const url = `${typeof window !== "undefined" ? window.location.origin : SITE_URL}/events#${ev._id}`
@@ -232,15 +231,8 @@ function EventsContent() {
     }
     setIsSubmitting(true)
     try {
-      // Demo seed events (evt_*) aren't in the DB yet — keep the signup
-      // locally so the flow never shows a fake "success" for a real booking.
-      if (ev._id.startsWith("evt_")) {
-        await new Promise((r) => setTimeout(r, 600))
-        toast.success("You're on the list! (Demo event — real booking opens soon.)")
-      } else {
-        await registerMutation({ eventId: ev._id as Id<"events">, name: formName.trim(), email: formEmail.trim().toLowerCase(), phone: formPhone.trim() || undefined })
-        toast.success("You're in! QR + reminder coming via email.")
-      }
+      await registerMutation({ eventId: ev._id as Id<"events">, name: formName.trim(), email: formEmail.trim().toLowerCase(), phone: formPhone.trim() || undefined })
+      toast.success("You're registered. We’ll send your confirmation by email.")
       setRegisteredIds((s) => new Set(s).add(ev._id))
       setActiveModal(null)
       setFormName("")
@@ -309,7 +301,7 @@ function EventsContent() {
               EXPERIENCE <span className="text-[#AFFF00]">GIGI</span>
             </h1>
             <p className="text-white/60 font-mono text-sm mt-4 max-w-xl leading-relaxed">
-              Free tastings, gym takeovers, corporate drops and festival collabs. Zero sugar, 10 flavours, 100% Nairobi-made. Walk in or register in 30s.
+              Free tastings, gym takeovers, corporate drops and festival collabs. Browse current dates and reserve a place when registration is open.
             </p>
             <div className="mt-6 relative max-w-xl">
               <Search className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -328,10 +320,10 @@ function EventsContent() {
             </div>
             <div className="flex flex-wrap gap-2 mt-4">
               {[
-                "Free tastings weekly",
-                "No ticket needed",
-                "QR fast-track",
-                "25% off first order",
+                "Current event dates",
+                "Live capacity counts",
+                "Save events for later",
+                "Add events to calendar",
               ].map((t) => (
                 <span key={t} className="inline-flex items-center gap-1.5 text-[#AFFF00] border border-[#AFFF00]/20 bg-[#AFFF00]/5 px-2.5 py-1 font-mono text-[11px]">
                   <Check className="w-3 h-3" /> {t}
@@ -346,7 +338,7 @@ function EventsContent() {
                 <Image src="/images/flavours/pineapple-coconut.png" alt="GiGi event" width={600} height={600} className="object-contain p-6" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/60 via-transparent to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 bg-[#121212]/90 border border-white/10 p-3 flex items-center justify-between backdrop-blur">
-                  <span className="text-white font-mono text-xs flex items-center gap-2"><CalendarDays className="w-3 h-3 text-[#AFFF00]" /> Weekly across Nairobi</span>
+                  <span className="text-white font-mono text-xs flex items-center gap-2"><CalendarDays className="w-3 h-3 text-[#AFFF00]" /> Nairobi activations</span>
                   <span className="bg-[#AFFF00] text-[#121212] font-black text-xs px-2 py-1">{allEvents.length} events</span>
                 </div>
               </div>
@@ -354,7 +346,7 @@ function EventsContent() {
                 {[
                   { k: String(upcoming.length), l: "Upcoming" },
                   { k: String(allEvents.filter((e) => e.category === "tasting").length), l: "Tastings" },
-                  { k: "4.9", l: "Avg rating" },
+                  { k: String(allEvents.reduce((sum, event) => sum + event.registered, 0)), l: "Registrations" },
                 ].map((s) => (
                   <div key={s.l} className="bg-[#121212] border border-white/5 p-3">
                     <p className="text-xl font-black text-[#AFFF00]">{s.k}</p>
@@ -364,10 +356,11 @@ function EventsContent() {
               </div>
               <div className="mt-4 space-y-2 text-[11px] font-mono">
                 <div className="flex items-center gap-2 text-white/60">
-                  <Timer className="w-3.5 h-3.5 text-[#AFFF00]" /> Next tasting in ~2 days — CBD City Market
+                  <Timer className="w-3.5 h-3.5 text-[#AFFF00]" />
+                  {nextEvent ? `Next up: ${nextEvent.title} · ${nextEvent.date}` : "No upcoming events have been scheduled yet."}
                 </div>
                 <div className="flex items-center gap-2 text-white/60">
-                  <Award className="w-3.5 h-3.5 text-[#AFFF00]" /> 2,400+ tasters in August
+                  <Award className="w-3.5 h-3.5 text-[#AFFF00]" /> Save an event to keep it handy for later.
                 </div>
               </div>
             </div>
@@ -472,9 +465,6 @@ function EventsContent() {
                 <button onClick={() => setView("list")} aria-label="List view" aria-pressed={view === "list"} className={`p-1.5 ${view === "list" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
                   <List className="w-4 h-4" />
                 </button>
-                <button onClick={() => setView("map")} aria-label="Map view" aria-pressed={view === "map"} className={`p-1.5 ${view === "map" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
-                  <Map className="w-4 h-4" />
-                </button>
               </div>
             </div>
           </div>
@@ -546,61 +536,25 @@ function EventsContent() {
           </motion.div>
         )}
 
-        {/* Events grid / list / map */}
+        {/* Events grid / list */}
         <div id="upcoming" className="scroll-mt-24 mb-10">
           <div className="flex items-baseline justify-between flex-wrap gap-2 mb-6">
             <h2 className="text-2xl font-black text-white tracking-tight">
               {dateFilter === "past" ? "PAST" : "UPCOMING"} <span className="text-[#AFFF00]">EVENTS</span> <span className="text-white/20 font-mono text-sm ml-2">{filtered.length} total</span>
             </h2>
-            <span className="font-mono text-white/30 text-xs hidden md:inline">Grid • List • Map — try Map for Nairobi</span>
+            <span className="font-mono text-white/30 text-xs hidden md:inline">Browse upcoming and past activations</span>
           </div>
 
-          {view === "map" ? (
-            <div className="grid lg:grid-cols-12 gap-6">
-              <div className="lg:col-span-5 space-y-3 max-h-[600px] overflow-auto pr-2">
-                {filtered.map((ev) => (
-                  <div key={ev._id} className="bg-white/5 border border-white/10 p-4 flex gap-4 hover:border-[#AFFF00]/30">
-                    <Image src={ev.image} alt={ev.title} width={80} height={80} className="object-contain bg-[#121212] p-2 border border-white/5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-bold text-sm leading-tight truncate">{ev.title}</p>
-                      <p className="text-white/40 font-mono text-xs flex items-center gap-1 mt-1"><MapPin className="w-3 h-3" /> {ev.location}</p>
-                      <p className="text-[#AFFF00] font-mono text-xs mt-1">{ev.date} • {ev.time}</p>
-                    </div>
-                  </div>
-                ))}
-                {filtered.length === 0 && <p className="text-white/40 font-mono text-sm text-center py-10">No events for these filters.</p>}
-              </div>
-              <div className="lg:col-span-7 bg-white/5 border border-white/10 p-4">
-                <div className="aspect-[16/10] bg-[#0e0e0e] border border-white/5 flex items-center justify-center relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-20" style={{ background: "radial-gradient(circle at 30% 40%, #AFFF00 0%, transparent 60%)" }} />
-                  <div className="text-center">
-                    <MapPin className="w-10 h-10 text-[#AFFF00] mx-auto mb-3" />
-                    <p className="text-white font-bold">Nairobi Activation Map</p>
-                    <p className="text-white/40 font-mono text-xs mt-1">CBD • Westlands • Kilimani • Lavington • Karen • Eastlands</p>
-                    <p className="text-white/20 font-mono text-[11px] mt-3">Interactive map with pins — plug Mapbox/Google Maps here. List → map sync on hover.</p>
-                  </div>
-                  {/* Fake pins */}
-                  {filtered.slice(0, 5).map((ev, i) => (
-                    <div key={ev._id} className="absolute w-3 h-3 bg-[#AFFF00] border-2 border-[#121212] rounded-full animate-pulse" style={{ left: `${18 + i * 14}%`, top: `${28 + (i % 2) * 22}%` }} />
-                  ))}
-                </div>
-                <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-mono">
-                  {AREAS.slice(1).map((a) => {
-                    const count = allEvents.filter((e) => e.area === a).length
-                    return (
-                      <div key={a} className="bg-[#121212] border border-white/5 p-2 flex justify-between">
-                        <span className="text-white/60">{a}</span>
-                        <span className="text-[#AFFF00]">{count}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
+          {convexEvents === undefined ? (
+            <div className="flex items-center justify-center gap-3 py-16 text-white/50 font-mono text-sm" role="status" aria-live="polite">
+              <span className="w-5 h-5 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+              Loading events…
             </div>
           ) : (
             <div className={view === "grid" ? "grid md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
               {filtered.map((ev, i) => {
                 const full = ev.registered >= ev.capacity
+                const ended = ev.status === "completed"
                 const isRegistered = registeredIds.has(ev._id)
                 const isBookmarked = bookmarks.has(ev._id)
                 const pct = Math.min(100, Math.round((ev.registered / ev.capacity) * 100))
@@ -649,8 +603,8 @@ function EventsContent() {
                           <div className="mt-4 flex gap-2">
                             {isRegistered ? (
                               <div className="flex-1 bg-[#AFFF00]/10 text-[#AFFF00] font-mono text-xs text-center py-2.5 border border-[#AFFF00]/20">✓ Registered</div>
-                            ) : full ? (
-                              <div className="flex-1 bg-white/5 text-white/40 font-mono text-xs text-center py-2.5">Fully booked</div>
+                            ) : full || ended ? (
+                              <div className="flex-1 bg-white/5 text-white/40 font-mono text-xs text-center py-2.5">{ended ? "Event ended" : "Fully booked"}</div>
                             ) : (
                               <button onClick={() => openModal(ev)} className="flex-1 bg-[#AFFF00] text-[#121212] font-black text-xs py-2.5 hover:opacity-90">Register free</button>
                             )}
@@ -672,7 +626,7 @@ function EventsContent() {
                           <h3 className="text-white font-bold text-sm mt-1 truncate">{ev.title}</h3>
                           <p className="text-white/40 font-mono text-xs flex items-center gap-2 mt-1"><MapPin className="w-3 h-3" /> {ev.location} • {ev.time}</p>
                           <div className="mt-2 flex items-center gap-2">
-                            {isRegistered ? <span className="text-[#AFFF00] font-mono text-xs">✓ Registered</span> : full ? <span className="text-white/30 font-mono text-xs">Full</span> : <button onClick={() => openModal(ev)} className="text-[#AFFF00] font-mono text-xs hover:underline">Register →</button>}
+                            {isRegistered ? <span className="text-[#AFFF00] font-mono text-xs">✓ Registered</span> : ended ? <span className="text-white/30 font-mono text-xs">Ended</span> : full ? <span className="text-white/30 font-mono text-xs">Full</span> : <button onClick={() => openModal(ev)} className="text-[#AFFF00] font-mono text-xs hover:underline">Register →</button>}
                             <button onClick={() => toggleBookmark(ev._id)} aria-label={isBookmarked ? `Remove ${ev.title} from saved` : `Save ${ev.title}`} aria-pressed={isBookmarked} className="ml-auto text-white/30 hover:text-[#AFFF00]"><Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-[#AFFF00] text-[#AFFF00]" : ""}`} /></button>
                             <button onClick={() => share(ev)} aria-label={`Share ${ev.title}`} className="text-white/30 hover:text-white"><Share2 className="w-4 h-4" /></button>
                           </div>
@@ -685,23 +639,27 @@ function EventsContent() {
             </div>
           )}
 
-          {filtered.length === 0 && (
+          {convexEvents !== undefined && filtered.length === 0 && (
             <div className="bg-white/5 border border-dashed border-white/10 p-10 text-center">
               <Search className="w-8 h-8 text-white/20 mx-auto mb-3" />
-              <p className="text-white font-bold">No events match</p>
-              <p className="text-white/40 font-mono text-sm mt-1">Try clearing filters or search for &quot;Nairobi&quot;.</p>
-              <button
-                onClick={() => {
-                  setQ("")
-                  setCat("all")
-                  setArea("All Areas")
-                  setDateFilter("all")
-                  setShowBookmarkedOnly(false)
-                }}
-                className="mt-4 text-[#AFFF00] font-mono text-sm hover:underline"
-              >
-                Reset all filters
-              </button>
+              <p className="text-white font-bold">{allEvents.length === 0 ? "No events scheduled yet" : "No events match"}</p>
+              <p className="text-white/40 font-mono text-sm mt-1">{allEvents.length === 0 ? "Check back soon or get in touch to plan an activation." : "Try clearing filters or searching for a different area."}</p>
+              {allEvents.length === 0 ? (
+                <Link href="/contact" className="inline-block mt-4 bg-[#AFFF00] text-[#121212] px-5 py-2.5 font-bold text-sm">Plan an activation</Link>
+              ) : (
+                <button
+                  onClick={() => {
+                    setQ("")
+                    setCat("all")
+                    setArea("All Areas")
+                    setDateFilter("all")
+                    setShowBookmarkedOnly(false)
+                  }}
+                  className="mt-4 text-[#AFFF00] font-mono text-sm hover:underline"
+                >
+                  Reset all filters
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -741,23 +699,23 @@ function EventsContent() {
             <h3 className="text-white font-black">BY THE NUMBERS</h3>
             <div className="mt-4 grid grid-cols-2 gap-3 text-center">
               <div className="bg-[#121212] border border-white/5 p-4">
-                <p className="text-2xl font-black text-[#AFFF00]">2.4K</p>
-                <p className="text-white/40 font-mono text-xs">Tasters / month</p>
+                <p className="text-2xl font-black text-[#AFFF00]">{upcoming.length}</p>
+                <p className="text-white/40 font-mono text-xs">Upcoming events</p>
               </div>
               <div className="bg-[#121212] border border-white/5 p-4">
-                <p className="text-2xl font-black text-[#AFFF00]">12</p>
-                <p className="text-white/40 font-mono text-xs">Gym partners</p>
+                <p className="text-2xl font-black text-[#AFFF00]">{allEvents.filter((event) => event.category === "tasting").length}</p>
+                <p className="text-white/40 font-mono text-xs">Tastings listed</p>
               </div>
               <div className="bg-[#121212] border border-white/5 p-4">
-                <p className="text-2xl font-black text-[#AFFF00]">48h</p>
-                <p className="text-white/40 font-mono text-xs">Avg reply</p>
+                <p className="text-2xl font-black text-[#AFFF00]">{new Set(allEvents.map((event) => event.area)).size}</p>
+                <p className="text-white/40 font-mono text-xs">Areas covered</p>
               </div>
               <div className="bg-[#121212] border border-white/5 p-4">
-                <p className="text-2xl font-black text-[#AFFF00]">4.9★</p>
-                <p className="text-white/40 font-mono text-xs">Event rating</p>
+                <p className="text-2xl font-black text-[#AFFF00]">{allEvents.reduce((sum, event) => sum + event.registered, 0)}</p>
+                <p className="text-white/40 font-mono text-xs">Registrations</p>
               </div>
             </div>
-            <p className="text-white/20 font-mono text-[11px] mt-3 text-center">Data from Convex + manual — update weekly.</p>
+            <p className="text-white/20 font-mono text-[11px] mt-3 text-center">Counts update with the event listings.</p>
           </div>
         </div>
 
@@ -779,33 +737,42 @@ function EventsContent() {
       <AnimatePresence>
         {activeModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="fixed inset-0 z-50 bg-[#121212]/90 backdrop-blur flex items-center justify-center p-4">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-[#1a1a1a] border border-white/10 w-full max-w-lg p-6 relative max-h-[90vh] overflow-auto">
-              <button onClick={() => setActiveModal(null)} className="absolute top-3 right-3 text-white/40 hover:text-white">
+            <motion.div role="dialog" aria-modal="true" aria-labelledby={`event-registration-${activeModal._id}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-[#1a1a1a] border border-white/10 w-full max-w-lg p-6 relative max-h-[90vh] overflow-auto">
+              <button onClick={() => setActiveModal(null)} aria-label="Close event registration" className="absolute top-3 right-3 text-white/40 hover:text-white">
                 <X className="w-5 h-5" />
               </button>
               <span className="text-[#AFFF00] font-mono text-xs tracking-widest">{activeModal.category.toUpperCase()} • {activeModal.area}</span>
-              <h3 className="text-xl font-black text-white mt-2">{activeModal.title}</h3>
+              <h3 id={`event-registration-${activeModal._id}`} className="text-xl font-black text-white mt-2">{activeModal.title}</h3>
               <p className="text-white/50 font-mono text-sm mt-2">{activeModal.description}</p>
               <div className="mt-4 space-y-1.5 text-white/40 font-mono text-xs">
                 <p className="flex items-center gap-2"><CalendarDays className="w-3 h-3 text-[#AFFF00]" /> {activeModal.date} • {activeModal.time}</p>
                 <p className="flex items-center gap-2"><MapPin className="w-3 h-3 text-[#AFFF00]" /> {activeModal.location}</p>
                 <p className="flex items-center gap-2"><Users className="w-3 h-3" /> {activeModal.registered}/{activeModal.capacity} • {activeModal.capacity - activeModal.registered} left</p>
               </div>
-              <div className="mt-6 space-y-3">
-                <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Full Name *" autoComplete="name" aria-label="Full name" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
-                <input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Email *" type="email" autoComplete="email" aria-label="Email address" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
-                <input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="Phone (optional)" type="tel" autoComplete="tel" inputMode="tel" aria-label="Phone number (optional)" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
-                <button onClick={() => handleRegister(activeModal)} disabled={isSubmitting} className="w-full bg-[#AFFF00] text-[#121212] font-black py-3 hover:opacity-90 disabled:opacity-60">
+              <form className="mt-6 space-y-3" onSubmit={(e) => { e.preventDefault(); void handleRegister(activeModal) }}>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Name *</span>
+                  <input required value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Jane Wanjiku" autoComplete="name" aria-label="Full name" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Email *</span>
+                  <input required value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="you@example.com" type="email" autoComplete="email" aria-label="Email address" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Phone (optional)</span>
+                  <input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="07XX XXX XXX" type="tel" autoComplete="tel" inputMode="tel" aria-label="Phone number (optional)" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+                </label>
+                <button type="submit" disabled={isSubmitting} className="w-full bg-[#AFFF00] text-[#121212] font-black py-3 hover:opacity-90 disabled:opacity-60">
                   {isSubmitting ? "Registering..." : "Confirm free registration"}
                 </button>
                 <div className="flex gap-2">
                   <a href={googleCalendarUrl(activeModal)} target="_blank" className="flex-1 text-center border border-white/10 text-white/60 font-mono text-xs py-2.5 hover:text-[#AFFF00] hover:border-[#AFFF00]/30">
                     Add to calendar
                   </a>
-                  <button onClick={() => share(activeModal)} aria-label={`Share ${activeModal.title}`} className="flex-1 border border-white/10 text-white/60 font-mono text-xs py-2.5 hover:text-white">Share</button>
+                  <button type="button" onClick={() => share(activeModal)} aria-label={`Share ${activeModal.title}`} className="flex-1 border border-white/10 text-white/60 font-mono text-xs py-2.5 hover:text-white">Share</button>
                 </div>
-                <p className="text-white/20 font-mono text-[11px] text-center">QR sent to email • 25% off code after check-in</p>
-              </div>
+                <p className="text-white/20 font-mono text-[11px] text-center">Registration is recorded for this event.</p>
+              </form>
             </motion.div>
           </motion.div>
         )}

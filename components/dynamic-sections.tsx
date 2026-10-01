@@ -6,16 +6,7 @@ const ActivationsSection = dynamic(() => import("@/components/activations-sectio
   ssr: false,
   loading: () => <div className="h-64 bg-white/[0.02] border-y border-white/5" aria-hidden="true" />,
 })
-const Footer = dynamic(() => import("@/components/footer").then(mod => mod.Footer), {
-  ssr: false,
-  loading: () => <div className="h-40 bg-[#121212]" aria-hidden="true" />,
-})
 
 export function DynamicSections() {
-  return (
-    <>
-      <ActivationsSection />
-      <Footer />
-    </>
-  )
+  return <ActivationsSection />
 }

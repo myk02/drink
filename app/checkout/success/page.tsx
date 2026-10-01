@@ -112,7 +112,16 @@ function SuccessContent() {
             onSubmit={(e) => {
               e.preventDefault()
               const v = emailInput.trim().toLowerCase()
-              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) setEmail(v)
+              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) {
+                setEmail(v)
+                try {
+                  const last = window.localStorage.getItem("gigi-last-order")
+                  const parsed = last ? (JSON.parse(last) as Record<string, unknown>) : {}
+                  window.localStorage.setItem("gigi-last-order", JSON.stringify({ ...parsed, email: v, reference }))
+                } catch {
+                  // ignore
+                }
+              }
             }}
           >
             <input
@@ -169,13 +178,21 @@ function SuccessContent() {
               <span className="text-white/40">{item.canCount * item.quantity} cans</span>
             </div>
           ))}
-          <div className="border-t border-white/10 pt-3 flex justify-between font-mono text-sm text-white/50">
-            <span>Delivery · {order.deliveryZone}</span>
-            <span>{formatKes(order.deliveryFeeKes)}</span>
-          </div>
-          <div className="flex justify-between font-bold">
-            <span className="text-white">Total Paid</span>
-            <span className="text-[#AFFF00]">{formatKes(order.totalKes)}</span>
+          <div className="border-t border-white/10 pt-3 space-y-2 font-mono text-sm">
+            {order.memberDiscountKes ? (
+              <div className="flex justify-between text-[#AFFF00]">
+                <span>Member discount</span>
+                <span>−{formatKes(order.memberDiscountKes)}</span>
+              </div>
+            ) : null}
+            <div className="flex justify-between text-white/50">
+              <span>Delivery · {order.deliveryZone}</span>
+              <span>{formatKes(order.deliveryFeeKes)}</span>
+            </div>
+            <div className="flex justify-between font-bold pt-2 border-t border-white/10">
+              <span className="text-white">Total Paid</span>
+              <span className="text-[#AFFF00]">{formatKes(order.totalKes)}</span>
+            </div>
           </div>
         </div>
         <Link href="/shop" className="inline-block mt-8 bg-[#AFFF00] text-[#121212] px-8 py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">

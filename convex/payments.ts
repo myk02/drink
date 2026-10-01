@@ -27,6 +27,18 @@ function randomSuffix(): string {
   return Math.random().toString(36).slice(2, 8).toUpperCase()
 }
 
+function checkoutOrigin(origin: string): string {
+  try {
+    const parsed = new URL(origin)
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("invalid")
+    }
+    return parsed.origin
+  } catch {
+    throw new Error("Could not start checkout from this page. Please refresh and try again.")
+  }
+}
+
 // Creates a pending order and initializes a Paystack hosted checkout.
 // Prices are ALWAYS recomputed here from the DB — client prices are never trusted.
 export const createCheckoutSession = action({
@@ -65,6 +77,8 @@ export const createCheckoutSession = action({
     if (address.length < 5) throw new Error("Please enter a full delivery address")
     if (address.length > 500) throw new Error("Delivery address is too long")
     if (args.customer.notes && args.customer.notes.length > 500) throw new Error("Delivery notes are too long")
+
+    const origin = checkoutOrigin(args.origin)
 
     let subtotalKes = 0
     const lineItems: Array<{
@@ -107,21 +121,19 @@ export const createCheckoutSession = action({
     // the discount comes from the plan's discountPctOnShop. Never trust a
     // client-sent percentage.
     let memberDiscountKes: number | undefined
-    const membership: { planName: string; discountPct: number | null } | null = await ctx.runQuery(
-      api.subscriptions.getMembershipForEmail,
-      { email }
-    )
-    if (membership?.discountPct) {
-      const discount = Math.round((subtotalKes * membership.discountPct) / 100)
+    const identity = await ctx.auth.getUserIdentity()
+    const membership = identity
+      ? await ctx.runQuery(internal.subscriptions.getActiveShopDiscountInternal, { clerkId: identity.subject })
+      : null
+    if (membership?.email === email && membership.pct) {
+      const discount = Math.round((subtotalKes * membership.pct) / 100)
       if (discount > 0) {
         memberDiscountKes = discount
-        subtotalKes -= discount
       }
     }
 
-    // Free-delivery promise must be judged on the pre-discount subtotal (what
-    // the club advertises), but the threshold already passed above.
-    const totalKes = subtotalKes + deliveryFeeKes
+    const netSubtotalKes = subtotalKes - (memberDiscountKes ?? 0)
+    const totalKes = netSubtotalKes + deliveryFeeKes
     const orderNumber = generateOrderNumber()
     // Timestamp + double random suffix — far stronger than Math.random() alone.
     const reference = `${orderNumber}-${Date.now().toString(36).toUpperCase()}${randomSuffix()}${randomSuffix()}`
@@ -154,7 +166,7 @@ export const createCheckoutSession = action({
         amount: totalKes * 100,
         currency: "KES",
         reference,
-        callback_url: `${args.origin}/checkout/success?reference=${encodeURIComponent(reference)}`,
+        callback_url: `${origin}/checkout/success?reference=${encodeURIComponent(reference)}`,
         channels: ["card", "mobile_money", "bank_transfer"],
         metadata: {
           order_number: orderNumber,
@@ -349,7 +361,7 @@ export const startSubscription = action({
         currency: "KES",
         plan: planCode,
         reference,
-        callback_url: `${args.origin}/subscribe/thanks`,
+        callback_url: `${checkoutOrigin(args.origin)}/subscribe/thanks`,
         channels: ["card", "mobile_money", "bank_transfer"],
         metadata: { kind: "subscription", plan_slug: args.planSlug, reference },
       }),
@@ -403,7 +415,7 @@ export const startDonation = action({
         amount: amountKes * 100,
         currency: "KES",
         reference,
-        callback_url: `${args.origin}/support/thanks`,
+        callback_url: `${checkoutOrigin(args.origin)}/support/thanks`,
         channels: ["card", "mobile_money", "bank_transfer"],
         metadata: { kind: "donation", reference },
       }),

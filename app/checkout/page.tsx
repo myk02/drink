@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { ArrowLeft, Lock, Loader2, ChevronDown } from "lucide-react"
+import { ArrowLeft, Lock, Loader2, ChevronDown, Minus, Plus, Trash2 } from "lucide-react"
 import { useAction, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
@@ -43,11 +43,11 @@ function CheckoutContent() {
   })
   const [redirecting, setRedirecting] = useState(false)
 
-  // GiGi Club preview: show the discount the backend will apply for this email
-  // (public query, safe fields only — the charge itself is computed server-side).
+  // Only reveal a member discount when this email belongs to the signed-in
+  // account. The server independently repeats this check when creating checkout.
   const emailTrimmed = form.email.trim().toLowerCase()
   const membership = useQuery(
-    api.subscriptions.getMembershipForEmail,
+    api.subscriptions.getMyShopDiscount,
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed) ? { email: emailTrimmed } : "skip"
   )
 
@@ -65,6 +65,14 @@ function CheckoutContent() {
     if (isSubmitting) return
     if (!form.zone) {
       toast.error("Please choose a delivery zone")
+      return
+    }
+    if (form.phone.replace(/\D/g, "").length < 9) {
+      toast.error("Please enter a valid phone number")
+      return
+    }
+    if (form.address.trim().length < 5) {
+      toast.error("Please enter a full delivery address")
       return
     }
     setIsSubmitting(true)
@@ -134,33 +142,51 @@ function CheckoutContent() {
             {/* Details */}
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <section className="bg-white/5 border border-white/10 p-6 space-y-4">
-                <h2 className="text-white font-bold tracking-tight mb-2">Contact</h2>
-                <input required autoComplete="name" aria-label="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full Name *" className={inputClass} />
-                <input required type="email" autoComplete="email" aria-label="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email Address *" className={inputClass} />
-                <input required type="tel" autoComplete="tel" aria-label="Phone number for M-Pesa" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone Number (M-Pesa) *" className={inputClass} />
+                <h2 className="text-white font-bold tracking-tight mb-4">Contact</h2>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Full name</span>
+                  <input required autoComplete="name" aria-label="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Wanjiku" className={inputClass} />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Email</span>
+                  <input required type="email" autoComplete="email" aria-label="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@email.com" className={inputClass} />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Phone (M-Pesa)</span>
+                  <input required type="tel" autoComplete="tel" inputMode="tel" aria-label="Phone number for M-Pesa" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="07XX XXX XXX" className={inputClass} />
+                </label>
               </section>
 
               <section className="bg-white/5 border border-white/10 p-6 space-y-4">
-                <h2 className="text-white font-bold tracking-tight mb-2">Delivery</h2>
-                <div className="relative">
-                  <select
-                    required
-                    aria-label="Delivery zone"
-                    value={form.zone}
-                    onChange={(e) => setForm({ ...form, zone: e.target.value })}
-                    className={`${inputClass} appearance-none cursor-pointer pr-10 ${!form.zone ? "text-white/40" : ""}`}
-                  >
-                    <option value="" disabled className="bg-[#121212]">Delivery Zone *</option>
-                    {DELIVERY_ZONES.map((z) => (
-                      <option key={z.name} value={z.name} className="bg-[#121212] text-white">
-                        {z.name} — {formatKes(z.feeKes)}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="w-4 h-4 text-white/40 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
-                </div>
-                <textarea required aria-label="Delivery address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Delivery Address * (building, street, landmark)" rows={2} className={`${inputClass} resize-none`} />
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} aria-label="Delivery notes (optional)" placeholder="Delivery Notes (optional — gate code, best time...)" rows={2} className={`${inputClass} resize-none`} />
+                <h2 className="text-white font-bold tracking-tight mb-4">Delivery</h2>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Zone</span>
+                  <div className="relative">
+                    <select
+                      required
+                      aria-label="Delivery zone"
+                      value={form.zone}
+                      onChange={(e) => setForm({ ...form, zone: e.target.value })}
+                      className={`${inputClass} appearance-none cursor-pointer pr-10 ${!form.zone ? "text-white/40" : ""}`}
+                    >
+                      <option value="" disabled className="bg-[#121212]">Choose a delivery zone</option>
+                      {DELIVERY_ZONES.map((z) => (
+                        <option key={z.name} value={z.name} className="bg-[#121212] text-white">
+                          {z.name} — {formatKes(z.feeKes)}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-white/40 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+                  </div>
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Address</span>
+                  <textarea required aria-label="Delivery address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Building, street, landmark" rows={2} className={`${inputClass} resize-none`} />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-white/50 font-mono text-xs">Notes (optional)</span>
+                  <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} aria-label="Delivery notes (optional)" placeholder="Gate code, best time to deliver…" rows={2} className={`${inputClass} resize-none`} />
+                </label>
               </section>
 
               <p className="text-white/30 font-mono text-xs flex items-center gap-2">
@@ -172,17 +198,49 @@ function CheckoutContent() {
             {/* Summary */}
             <motion.aside initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="bg-white/5 border border-white/10 p-6 lg:sticky lg:top-24 space-y-4">
               <h2 className="text-white font-bold tracking-tight">Order Summary</h2>
-              <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
+              <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
                 {cart.items.map((item) => (
-                  <div key={item.productId} className="flex gap-3 items-center">
-                    <div className="relative w-10 h-12 shrink-0 bg-white/5">
-                      <Image src={item.image} alt={item.name} fill sizes="40px" className="object-contain p-0.5" />
-                    </div>
+                  <div key={item.productId} className="flex gap-3 items-start">
+                    <Link href={`/shop/${item.slug}`} className="relative w-12 h-14 shrink-0 bg-white/5">
+                      <Image src={item.image} alt={item.name} fill sizes="48px" className="object-contain p-0.5" />
+                    </Link>
                     <div className="flex-1 min-w-0">
                       <p className="text-white text-xs font-bold truncate">{item.name}</p>
-                      <p className="text-white/40 font-mono text-xs">×{item.quantity}</p>
+                      <p className="text-white/40 font-mono text-[11px] mt-0.5">{formatKes(item.priceKes)} each</p>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex items-center gap-2 bg-white/5 border border-white/10 px-1.5 py-0.5">
+                          <button
+                            type="button"
+                            onClick={() => cart.setQuantity(item.productId, item.quantity - 1)}
+                            className="text-white/60 hover:text-[#AFFF00] p-1 cursor-pointer"
+                            aria-label={`Decrease ${item.name}`}
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-white font-mono text-xs w-4 text-center">{item.quantity}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (item.quantity >= 20) return
+                              cart.setQuantity(item.productId, item.quantity + 1)
+                            }}
+                            className="text-white/60 hover:text-[#AFFF00] p-1 cursor-pointer"
+                            aria-label={`Increase ${item.name}`}
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => cart.removeItem(item.productId)}
+                          className="text-white/30 hover:text-red-400 p-1 cursor-pointer"
+                          aria-label={`Remove ${item.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
-                    <span className="text-white/70 font-mono text-xs">{formatKes(item.priceKes * item.quantity)}</span>
+                    <span className="text-white/70 font-mono text-xs pt-0.5">{formatKes(item.priceKes * item.quantity)}</span>
                   </div>
                 ))}
               </div>

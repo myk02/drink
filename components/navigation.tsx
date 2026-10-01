@@ -67,6 +67,7 @@ export function Navigation() {
     { label: "Events", href: isHome ? null : "/events", hash: isHome ? "#creators" : null },
     { label: "Distributors", href: "/distributors", hash: null },
     { label: "Careers", href: "/careers", hash: null },
+    ...(isSignedIn ? [{ label: "Account", href: "/account", hash: null }] : []),
   ]
 
   const isLinkActive = (item: (typeof navLinks)[number]) => {
@@ -104,7 +105,7 @@ export function Navigation() {
           </motion.span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8">
+        <div className="hidden md:flex items-center gap-6">
           {navLinks.map((item, i) => (
             <Link
               key={item.label}
@@ -121,7 +122,9 @@ export function Navigation() {
             >
               <motion.span
                 className={`text-sm font-medium tracking-wide transition-colors relative cursor-pointer ${
-                  isLinkActive(item)
+                  item.label === "Shop"
+                    ? "bg-[#AFFF00] text-[#121212] px-3 py-1.5 font-bold hover:opacity-90"
+                    : isLinkActive(item)
                     ? "text-[#AFFF00]"
                     : scrolled || !isHome
                       ? "text-white/80 hover:text-[#AFFF00]"
@@ -134,6 +137,7 @@ export function Navigation() {
                 whileTap={{ scale: 0.95 }}
               >
                 {item.label}
+                {item.label !== "Shop" && (
                 <motion.span
                   className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#AFFF00] origin-left"
                   initial={{ scaleX: 0 }}
@@ -141,6 +145,7 @@ export function Navigation() {
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3, ease: EASE }}
                 />
+                )}
               </motion.span>
             </Link>
           ))}

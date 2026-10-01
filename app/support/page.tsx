@@ -62,10 +62,12 @@ function SupportWidget() {
         </p>
       </div>
 
+      <form onSubmit={(e) => { e.preventDefault(); void handleDonate() }}>
       <div className="grid grid-cols-4 gap-2 mb-4">
         {PRESETS.map((preset) => (
           <button
             key={preset}
+            type="button"
             onClick={() => {
               setAmount(preset)
               setCustomAmount("")
@@ -81,43 +83,54 @@ function SupportWidget() {
           </button>
         ))}
       </div>
-      <input
+      <label className="block space-y-1.5 mb-4">
+        <span className="text-white/50 font-mono text-xs">Custom amount (optional)</span>
+        <input
         type="text"
         inputMode="numeric"
         pattern="[0-9]*"
         minLength={1}
         value={customAmount}
         onChange={(e) => setCustomAmount(e.target.value.replace(/[^0-9]/g, ""))}
-        placeholder="Custom amount (KSh)"
+        placeholder="Enter amount in KSh"
         aria-label="Custom amount in Kenyan shillings"
         disabled={isSubmitting}
-        className={`${inputClass} mb-4`}
-      />
+        className={inputClass}
+        />
+      </label>
 
       <div className="space-y-3 mb-4">
-        <input
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Email *</span>
+          <input
           type="email"
           required
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
-          placeholder="Email Address *"
+          placeholder="you@example.com"
           aria-label="Email address"
           autoComplete="email"
           disabled={isSubmitting}
           className={inputClass}
-        />
+          />
+        </label>
         {!form.anonymous && (
-          <input
+          <label className="block space-y-1.5">
+            <span className="text-white/50 font-mono text-xs">Name (optional)</span>
+            <input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="Your name (shows on the wall)"
+            placeholder="How you’d like to appear"
             aria-label="Your name (shows on the supporters wall)"
             autoComplete="name"
             disabled={isSubmitting}
             className={inputClass}
-          />
+            />
+          </label>
         )}
-        <textarea
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Message (optional)</span>
+          <textarea
           value={form.message}
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           placeholder="Say something to the team (optional)"
@@ -125,7 +138,8 @@ function SupportWidget() {
           rows={2}
           disabled={isSubmitting}
           className={`${inputClass} resize-none`}
-        />
+          />
+        </label>
         <label className="flex items-center gap-2 text-white/40 font-mono text-xs cursor-pointer">
           <input
             type="checkbox"
@@ -139,13 +153,14 @@ function SupportWidget() {
       </div>
 
       <button
-        onClick={() => void handleDonate()}
+        type="submit"
         disabled={!/.+@.+\..+/.test(form.email) || !(effectiveAmount >= 50) || isSubmitting}
         className="w-full bg-[#AFFF00] disabled:bg-white/10 disabled:text-white/40 text-[#121212] py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
       >
         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Coffee className="w-4 h-4" />}
         {isSubmitting ? "Starting…" : `Support ${formatKes(Number.isFinite(effectiveAmount) ? effectiveAmount : 0)} · M-Pesa or Card`}
       </button>
+      </form>
     </div>
   )
 }

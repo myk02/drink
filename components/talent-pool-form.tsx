@@ -51,10 +51,19 @@ function TalentInner() {
   return (
     <form onSubmit={handle} className="space-y-3">
       <div className="grid md:grid-cols-2 gap-3">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name (optional)" className={inputClass} disabled={isSubmitting} />
-        <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" className={inputClass} disabled={isSubmitting} />
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Name (optional)</span>
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Wanjiku" autoComplete="name" className={inputClass} disabled={isSubmitting} />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Email *</span>
+          <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" className={inputClass} disabled={isSubmitting} />
+        </label>
       </div>
-      <input value={interests} onChange={(e) => setInterests(e.target.value)} placeholder="Interests — e.g. Sales, Ops, Brand (optional)" className={inputClass} disabled={isSubmitting} />
+      <label className="block space-y-1.5">
+        <span className="text-white/50 font-mono text-xs">Interests (optional)</span>
+        <input value={interests} onChange={(e) => setInterests(e.target.value)} placeholder="Sales, operations, brand…" className={inputClass} disabled={isSubmitting} />
+      </label>
       <p className="text-white/30 font-mono text-[11px]">By joining you consent to GiGi emailing you about future roles. Unsubscribe anytime. We never share your data.</p>
       <button
         type="submit"

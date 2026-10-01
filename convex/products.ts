@@ -14,10 +14,12 @@ export const getActive = query({
 export const getBySlug = query({
   args: { slug: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const product = await ctx.db
       .query("products")
       .withIndex("by_slug", (q) => q.eq("slug", args.slug))
       .first()
+    if (!product || !product.isActive) return null
+    return product
   },
 })
 

@@ -136,23 +136,32 @@ function SubscribeContent() {
           </ul>
 
           <h2 className="font-mono text-[#AFFF00] text-xs tracking-widest mb-4">YOUR DETAILS</h2>
-          <div className="space-y-3">
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Name (optional)" autoComplete="name" aria-label="Your name (optional)" disabled={isSubmitting} className={inputClass} />
-            <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email Address *" autoComplete="email" aria-label="Email address" disabled={isSubmitting} className={inputClass} />
-            <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number (for M-Pesa renewals)" autoComplete="tel" inputMode="tel" aria-label="Phone number (for M-Pesa renewals)" disabled={isSubmitting} className={inputClass} />
-          </div>
+          <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); void handleSubscribe() }}>
+            <label className="block space-y-1.5">
+              <span className="text-white/50 font-mono text-xs">Name (optional)</span>
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Jane Wanjiku" autoComplete="name" aria-label="Your name (optional)" disabled={isSubmitting} className={inputClass} />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-white/50 font-mono text-xs">Email *</span>
+              <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="you@example.com" autoComplete="email" aria-label="Email address" disabled={isSubmitting} className={inputClass} />
+            </label>
+            <label className="block space-y-1.5">
+              <span className="text-white/50 font-mono text-xs">Phone for M-Pesa renewals (optional)</span>
+              <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="07XX XXX XXX" autoComplete="tel" inputMode="tel" aria-label="Phone number (for M-Pesa renewals)" disabled={isSubmitting} className={inputClass} />
+            </label>
           {!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) && (
             <p className="text-white/40 font-mono text-[11px] mt-2">Enter a valid email to continue</p>
           )}
 
           <button
-            onClick={() => void handleSubscribe()}
+            type="submit"
             disabled={!/.+@.+\..+/.test(form.email) || isSubmitting}
             className="mt-6 w-full bg-[#AFFF00] disabled:bg-white/10 disabled:text-white/40 text-[#121212] py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {isSubmitting ? "Starting…" : `Subscribe — ${formatKes(selected.amountKes)}/month`}
           </button>
+          </form>
           <p className="text-white/30 font-mono text-xs mt-3 text-center">
             Billed monthly. Cancel or pause anytime from your account.
           </p>

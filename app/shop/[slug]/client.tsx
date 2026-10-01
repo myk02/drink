@@ -7,14 +7,14 @@ import { api } from "@/convex/_generated/api"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowLeft, Star, Heart, Minus, Plus, ShieldCheck, Truck, Zap, Share2, ShoppingBag } from "lucide-react"
+import { ArrowLeft, Heart, Minus, Plus, ShieldCheck, Truck, Zap, Share2, ShoppingBag } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { ClientOnly } from "@/components/client-only"
 import { formatKes } from "@/lib/delivery"
 import { SITE_URL } from "@/lib/site"
 import { useCart } from "@/components/cart-provider"
 import { useWishlist } from "@/components/wishlist-provider"
-import { getRating, getStockStatus, PRODUCT_FAQS } from "@/lib/shop-data"
+import { getStockStatus, PRODUCT_FAQS } from "@/lib/shop-data"
 import { toast } from "sonner"
 import type { Doc } from "@/convex/_generated/dataModel"
 
@@ -47,7 +47,6 @@ function ShopSlugInner() {
   // Computed once per mount, not during render (render purity).
   const [priceValidUntil] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0])
 
-  const rating = useMemo(() => getRating(slug), [slug])
   const stock = useMemo(() => (product ? getStockStatus(product) : { label: "Checking...", tone: "in" as const }), [product])
   const discount = product?.compareAtKes && product.compareAtKes > product.priceKes ? Math.round((1 - product.priceKes / product.compareAtKes) * 100) : null
   const perCan = product ? Math.round(product.priceKes / product.canCount) : 0
@@ -81,7 +80,8 @@ function ShopSlugInner() {
       cart.closeCart()
       router.push("/checkout")
     } else {
-      toast.success(`${product.name} ×${qty} added to cart`, { action: { label: "View Cart", onClick: () => cart.openCart() } })
+      cart.openCart()
+      toast.success(`${product.name} ×${qty} added to cart`, { action: { label: "Checkout", onClick: () => router.push("/checkout") } })
     }
   }
 
@@ -113,7 +113,6 @@ function ShopSlugInner() {
     description: product.description,
     sku: product.slug,
     brand: { "@type": "Brand", name: "GiGi Energy" },
-    aggregateRating: { "@type": "AggregateRating", ratingValue: rating.rating, reviewCount: rating.count },
     offers: {
       "@type": "Offer",
       url: `${SITE_URL}/shop/${product.slug}`,
@@ -156,7 +155,7 @@ function ShopSlugInner() {
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-10 md:py-12 pb-24 md:pb-12">
+      <div className="max-w-7xl mx-auto px-6 pt-24 pb-24 md:pt-28 md:pb-12">
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-white/40 font-mono text-xs mb-6">
           <Link href="/" className="hover:text-[#AFFF00]">Home</Link> <span>/</span> <Link href="/shop" className="hover:text-[#AFFF00]">Shop</Link> <span>/</span> <span className="text-white">{product.name}</span>
         </nav>
@@ -172,7 +171,6 @@ function ShopSlugInner() {
               <Image src={product.image} alt={product.name} fill sizes="(max-width: 1024px) 100vw, 50vw" className="object-contain p-8 md:p-12 drop-shadow-2xl transition-transform duration-500 group-hover:scale-[1.03]" priority />
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {discount && <span className="bg-[#AFFF00] text-[#121212] font-black text-xs px-2.5 py-1">SAVE {discount}% · {formatKes((product.compareAtKes! - product.priceKes))} OFF</span>}
-                {rating.badge && <span className="bg-[#121212] text-[#AFFF00] border border-[#AFFF00]/20 font-mono text-xs font-bold px-2.5 py-1">{rating.badge}</span>}
               </div>
               <span className="absolute top-4 right-4 bg-[#121212]/80 text-white/70 font-mono text-xs px-2 py-1 border border-white/10">{product.canCount} CANS</span>
             </div>
@@ -188,7 +186,7 @@ function ShopSlugInner() {
                 </div>
               ))}
             </div>
-            <p className="text-white/30 font-mono text-xs">UGC outperforms studio 2.4× — customers share fridge shelfies (coming soon). Hover to zoom on desktop, swipe on mobile.</p>
+            <p className="text-white/30 font-mono text-xs">Hover to zoom on desktop. Best served chilled 3–7°C.</p>
           </motion.div>
 
           {/* Details */}
@@ -204,11 +202,6 @@ function ShopSlugInner() {
 
             {/* Rating + stock */}
             <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 px-2.5 py-1.5">
-                <span className="flex items-center gap-0.5">{Array.from({ length: 5 }).map((_, i) => <Star key={i} className={`w-3.5 h-3.5 ${i < Math.round(rating.rating) ? "text-[#AFFF00] fill-[#AFFF00]" : "text-white/15"}`} />)}</span>
-                <span className="text-white font-bold text-xs ml-1">{rating.rating.toFixed(1)}</span>
-                <span className="text-white/40 font-mono text-xs">({rating.count})</span>
-              </span>
               <span className={`font-mono text-xs px-2.5 py-1.5 border ${stock.tone === "low" ? "bg-[#f59e0b] text-[#121212] border-[#f59e0b]" : stock.tone === "out" ? "bg-red-500 text-white border-red-500" : "bg-[#AFFF00]/10 text-[#AFFF00] border-[#AFFF00]/20"}`}>{stock.label}</span>
               <button
                 onClick={() => { const was = wishlist.isWishlisted(product._id); wishlist.toggle(product._id); toast.success(was ? "Removed from wishlist" : "Added to wishlist") }}
@@ -363,11 +356,6 @@ function ShopSlugInner() {
           </div>
         </div>
 
-        {/* Bottom related – social proof */}
-        <div className="mt-16 bg-white/5 border border-white/10 p-6 text-center">
-          <p className="text-white/60 font-mono text-sm">“{rating.rating.toFixed(1)} out of 5 — based on {rating.count} verified shop reviews”</p>
-          <p className="text-white/30 font-mono text-xs mt-1">Real customers, real batches. Reviews sampled from Nairobi deliveries — UGC photos coming soon.</p>
-        </div>
       </div>
     </div>
   )

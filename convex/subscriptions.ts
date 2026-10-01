@@ -260,16 +260,24 @@ export const setLocalStatus = internalMutation({
 
 // Thanks-page polling: most recent subscription touched in the last 45 min.
 // Extended to 6h so slow webhooks / revisits still resolve; returns latest status.
-export const getRecentForEmail = query({
-  args: { email: v.string() },
+export const getRecentForReference = query({
+  args: { reference: v.string() },
+  returns: v.union(
+    v.object({
+      status: v.union(v.literal("pending"), v.literal("active"), v.literal("past_due"), v.literal("paused"), v.literal("cancelled")),
+      planSlug: v.string(),
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
-    const rows = await ctx.db
-      .query("subscriptions")
-      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
-      .collect()
-    const latest = rows.sort((a, b) => b.startedAt - a.startedAt)[0]
-    if (!latest || Date.now() - latest.startedAt > 6 * 60 * 60 * 1000) return null
-    return { status: latest.status, planSlug: latest.planSlug }
+    const event = await ctx.db
+      .query("billingEvents")
+      .withIndex("by_reference", (q) => q.eq("reference", args.reference))
+      .first()
+    if (!event) return null
+    const subscription = await ctx.db.get(event.subscriptionId)
+    if (!subscription) return null
+    return { status: subscription.status, planSlug: subscription.planSlug }
   },
 })
 
@@ -331,38 +339,61 @@ export const getMySubscription = query({
 // ---------- admin / discount / deterministic renewal helpers ----------
 
 export const getActiveShopDiscountInternal = internalQuery({
-  args: { email: v.string() },
+  args: { clerkId: v.string() },
+  returns: v.union(
+    v.object({ email: v.string(), pct: v.number(), planName: v.string() }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .first()
+    const email = user?.email?.trim().toLowerCase()
+    if (!email) return null
     const rows = await ctx.db
       .query("subscriptions")
-      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .collect()
     const active = rows.filter((r) => r.status === "active").sort((a, b) => b.startedAt - a.startedAt)[0]
     if (!active) return null
     const plan = await ctx.db.query("plans").withIndex("by_slug", (q) => q.eq("slug", active.planSlug)).first()
     if (!plan?.discountPctOnShop) return null
-    return { pct: plan.discountPctOnShop, planName: plan.name }
+    return { email, pct: plan.discountPctOnShop, planName: plan.name }
   },
 })
 
-// Public preview for the checkout UI (safe fields only).
-export const getMembershipForEmail = query({
+// The checkout UI may preview a shop discount only for the signed-in account's
+// own verified profile email. An arbitrary email is never enough to enumerate
+// memberships or obtain a discount.
+export const getMyShopDiscount = query({
   args: { email: v.string() },
+  returns: v.union(
+    v.object({ planName: v.string(), discountPct: v.number() }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity()
+    if (!identity) return null
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_clerkId", (q) => q.eq("clerkId", identity.subject))
+      .first()
+    const email = user?.email?.trim().toLowerCase()
+    if (!email || email !== args.email.trim().toLowerCase()) return null
     const rows = await ctx.db
       .query("subscriptions")
-      .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
+      .withIndex("by_email", (q) => q.eq("email", email))
       .collect()
     const active = rows.filter((r) => r.status === "active").sort((a, b) => b.startedAt - a.startedAt)[0]
     if (!active) return null
     const plan = await ctx.db.query("plans").withIndex("by_slug", (q) => q.eq("slug", active.planSlug)).first()
-    return {
-      planName: plan?.name ?? "GiGi Club",
-      discountPct: plan?.discountPctOnShop ?? null,
-    }
+    if (!plan?.discountPctOnShop) return null
+    return { planName: plan.name, discountPct: plan.discountPctOnShop }
   },
 })
 
+// Public preview for the checkout UI (safe fields only).
 export const getBySubscriptionCodeInternal = internalQuery({
   args: { code: v.string() },
   handler: async (ctx, args) => {

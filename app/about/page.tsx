@@ -55,16 +55,24 @@ export default function AboutPage() {
         </div>
 
         <div className="mt-12 bg-white/5 border border-white/10 p-8">
-          <h2 className="text-xl font-bold text-white mb-3">Fuel your ambition</h2>
+          <h2 className="text-xl font-bold text-white mb-3">Stock your fridge</h2>
           <p className="text-white/60 font-mono text-sm mb-4">
-            Want GiGi at your gym, office, or event? Let&apos;s talk.
+            Shop flavour 12-packs, the taster 6, or a mixed 24-case. M-Pesa or card.
           </p>
-          <Link
-            href="/contact"
-            className="inline-block bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity"
-          >
-            Get in Touch
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/shop"
+              className="inline-block bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity"
+            >
+              Shop Cases
+            </Link>
+            <Link
+              href="/contact"
+              className="inline-block border border-white/20 text-white px-6 py-3 font-bold text-sm tracking-wide hover:border-[#AFFF00]/40 transition-colors"
+            >
+              Get in Touch
+            </Link>
+          </div>
         </div>
       </div>
     </div>

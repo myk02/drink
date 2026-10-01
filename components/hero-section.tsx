@@ -4,8 +4,6 @@ import { motion, useScroll, useTransform, type Variants } from "framer-motion"
 import { useRef } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { useAuth, useClerk } from "@clerk/nextjs"
 
 const fadeUpVariants: Variants = {
   hidden: { opacity: 0, y: 40 },
@@ -37,9 +35,6 @@ const scaleInVariants: Variants = {
 
 export function HeroSection() {
   const ref = useRef(null)
-  const router = useRouter()
-  const { isSignedIn } = useAuth()
-  const { openSignUp } = useClerk()
   const { scrollYProgress } = useScroll({
     target: ref,
     offset: ["start start", "end start"],
@@ -145,41 +140,37 @@ export function HeroSection() {
               custom={4}
               className="flex flex-wrap gap-3 pt-2"
             >
-              <motion.button
-                onClick={() => {
-                  // Already signed in? Clerk single-session mode blocks the
-                  // SignUp modal — send them shopping instead.
-                  if (isSignedIn) router.push("/flavours")
-                  else openSignUp()
-                }}
-                aria-label={isSignedIn ? "Shop all flavours" : "Sign up and save 25 percent"}
-                className="bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 group relative overflow-hidden cursor-pointer"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full"
-                  whileHover={{ x: "200%" }}
-                  transition={{ duration: 0.6 }}
-                />
-                <span className="relative z-10">Sign Up & Save 25%</span>
-                <motion.svg
-                  className="w-4 h-4 relative z-10"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  initial={{ x: 0 }}
-                  whileHover={{ x: 4 }}
+              <Link href="/shop">
+                <motion.button
+                  aria-label="Shop cases and packs"
+                  className="bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 group relative overflow-hidden cursor-pointer"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  aria-hidden="true"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                </motion.svg>
-              </motion.button>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full"
+                    whileHover={{ x: "200%" }}
+                    transition={{ duration: 0.6 }}
+                  />
+                  <span className="relative z-10">Shop Cases</span>
+                  <motion.svg
+                    className="w-4 h-4 relative z-10"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    initial={{ x: 0 }}
+                    whileHover={{ x: 4 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                    aria-hidden="true"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                  </motion.svg>
+                </motion.button>
+              </Link>
               <Link href="/flavours">
                 <motion.button
-                  className="border-2 border-[#121212] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide relative overflow-hidden"
+                  className="border-2 border-[#121212] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide relative overflow-hidden cursor-pointer"
                   whileHover={{ scale: 1.02, backgroundColor: "#121212", color: "#fff" }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}

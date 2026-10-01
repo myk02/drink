@@ -5,30 +5,14 @@ import { api } from "@/convex/_generated/api"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar, Clock, Users } from "lucide-react"
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
 import { ClientOnly } from "@/components/client-only"
-import { MOCK_EVENTS } from "@/lib/events-data"
 
 function TastingEventsContent() {
   const dbEvents = useQuery(api.events.getByCategory, { category: "tasting" })
-  // Fall back to bundled tastings when the DB is empty (same as /events hub).
-  const events = useMemo(() => {
-    if (dbEvents === undefined) return undefined
-    if (dbEvents.length > 0) return dbEvents
-    return MOCK_EVENTS.filter((e) => e.category === "tasting").map((e) => ({
-      _id: e._id as unknown as Id<"events">,
-      title: e.title,
-      description: e.description,
-      date: e.date,
-      time: e.time,
-      location: e.location,
-      status: e.status,
-      registered: e.registered,
-      capacity: e.capacity,
-    }))
-  }, [dbEvents])
+  const events = dbEvents
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
 
   const markRegistered = (eventId: string) => setRegisteredIds((prev) => new Set(prev).add(eventId))
@@ -49,7 +33,7 @@ function TastingEventsContent() {
             <span className="text-[#AFFF00]">ENERGY</span>
           </h1>
           <p className="text-white/60 font-mono text-sm mt-4 max-w-xl">
-            Come sample GiGi Energy at locations across Nairobi. Meet our team, find your favourite flavour, and get 25% off your first order.
+            Come sample GiGi Energy at scheduled locations across Nairobi. Meet our team and find your favourite flavour.
           </p>
         </motion.div>
 
@@ -73,7 +57,7 @@ function TastingEventsContent() {
           {events?.length === 0 && (
             <div className="col-span-2 text-center py-20 bg-white/5 border border-white/10">
               <p className="text-white/40 font-mono text-lg">No tasting events scheduled yet. Check back soon!</p>
-              <p className="text-white/20 font-mono text-sm mt-2">New events are added weekly across Nairobi.</p>
+              <p className="text-white/20 font-mono text-sm mt-2">Check back for new dates, or ask us about hosting a tasting.</p>
               <Link href="/events" className="inline-block mt-6 bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
                 Browse All Activations
               </Link>
@@ -102,6 +86,7 @@ function TastingEventCard({ event, index, isRegistered, onRegistered }: { event:
   const [isSubmitting, setIsSubmitting] = useState(false)
   const register = useMutation(api.events.register)
   const full = event.registered >= event.capacity
+  const ended = event.status === "completed"
 
   const handleRegister = async () => {
     if (isSubmitting) return
@@ -115,19 +100,6 @@ function TastingEventCard({ event, index, isRegistered, onRegistered }: { event:
       toast.error("Valid email required")
       return
     }
-    // Demo seed events (evt_*) aren't in the DB — confirm locally.
-    if (String(event._id).startsWith("evt_")) {
-      setIsSubmitting(true)
-      await new Promise((r) => setTimeout(r, 500))
-      setIsSubmitting(false)
-      onRegistered()
-      setOpen(false)
-      setName("")
-      setEmail("")
-      setPhone("")
-      toast.success("You're on the list! (Demo event — real booking opens soon.)")
-      return
-    }
     setIsSubmitting(true)
     try {
       await register({ eventId: event._id, name: cleanName, email: cleanEmail, phone: phone.trim() || undefined })
@@ -136,7 +108,7 @@ function TastingEventCard({ event, index, isRegistered, onRegistered }: { event:
       setName("")
       setEmail("")
       setPhone("")
-      toast.success("You're registered! See you there — bring your energy.")
+      toast.success("You're registered. See you there!")
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again."
       if (msg.includes("already registered")) {
@@ -169,20 +141,30 @@ function TastingEventCard({ event, index, isRegistered, onRegistered }: { event:
         <div className="flex items-center gap-2"><Clock className="w-3 h-3" />{event.time}</div>
         <div className="flex items-center gap-2"><MapPin className="w-3 h-3" />{event.location}</div>
       </div>
-      {!isRegistered && !full && (
+      {!isRegistered && !full && !ended && (
         <motion.button className="mt-6 w-full bg-[#AFFF00] text-[#121212] px-4 py-3 rounded-xl font-bold text-sm tracking-wide cursor-pointer" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => setOpen(!open)}>
           {open ? "Close Form" : "Register for Free"}
         </motion.button>
       )}
       {isRegistered && <div className="mt-6 w-full bg-[#AFFF00]/10 text-[#AFFF00] px-4 py-3 rounded-xl font-mono text-sm text-center border border-[#AFFF00]/20">✓ You&apos;re registered!</div>}
       {full && !isRegistered && <div className="mt-6 w-full bg-white/5 text-white/40 px-4 py-3 rounded-xl font-mono text-sm text-center">Event fully booked</div>}
+      {ended && !isRegistered && <div className="mt-6 w-full bg-white/5 text-white/40 px-4 py-3 rounded-xl font-mono text-sm text-center">This event has ended</div>}
       <AnimatePresence>
-        {open && !isRegistered && (
+        {open && !isRegistered && !ended && (
           <motion.form initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden" onSubmit={(e) => { e.preventDefault(); void handleRegister() }}>
             <div className="pt-4 space-y-3">
-              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name *" autoComplete="name" aria-label="Full name" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
-              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address *" autoComplete="email" aria-label="Email address" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone Number" autoComplete="tel" inputMode="tel" aria-label="Phone number" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              <label className="block space-y-1.5">
+                <span className="text-white/50 font-mono text-xs">Name *</span>
+                <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Jane Wanjiku" autoComplete="name" aria-label="Full name" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-white/50 font-mono text-xs">Email *</span>
+                <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" aria-label="Email address" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-white/50 font-mono text-xs">Phone (optional)</span>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="07XX XXX XXX" autoComplete="tel" inputMode="tel" aria-label="Phone number" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              </label>
               <button type="submit" disabled={isSubmitting || !name.trim() || !email.trim()} className="w-full bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white px-4 py-3 rounded-xl font-bold text-sm tracking-wide transition-colors cursor-pointer">{isSubmitting ? "Registering..." : "Confirm Registration"}</button>
             </div>
           </motion.form>

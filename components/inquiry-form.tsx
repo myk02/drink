@@ -94,7 +94,9 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
-        <input
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Name *</span>
+          <input
           required
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -103,9 +105,12 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
           autoComplete="name"
           disabled={isSubmitting}
           className={inputClass}
-        />
+          />
+        </label>
         {showCompanyField && (
-          <input
+          <label className="block space-y-1.5">
+            <span className="text-white/50 font-mono text-xs">{category === "organizer" ? "Organization / event" : "Company"}</span>
+            <input
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder={category === "organizer" ? "Organization / Event Name" : "Company Name"}
@@ -113,11 +118,14 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
             autoComplete="organization"
             disabled={isSubmitting}
             className={inputClass}
-          />
+            />
+          </label>
         )}
       </div>
       <div className="grid md:grid-cols-2 gap-4">
-        <input
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Email *</span>
+          <input
           required
           type="email"
           value={email}
@@ -127,8 +135,11 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
           autoComplete="email"
           disabled={isSubmitting}
           className={inputClass}
-        />
-        <input
+          />
+        </label>
+        <label className="block space-y-1.5">
+          <span className="text-white/50 font-mono text-xs">Phone (optional)</span>
+          <input
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
@@ -138,9 +149,12 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
           inputMode="tel"
           disabled={isSubmitting}
           className={inputClass}
-        />
+          />
+        </label>
       </div>
-      <textarea
+      <label className="block space-y-1.5">
+        <span className="text-white/50 font-mono text-xs">Message * (at least 10 characters)</span>
+        <textarea
         required
         minLength={10}
         value={message}
@@ -150,7 +164,8 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
         rows={3}
         disabled={isSubmitting}
         className={`${inputClass} resize-none`}
-      />
+        />
+      </label>
       <motion.button
         type="submit"
         disabled={isSubmitting}

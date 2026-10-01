@@ -9,6 +9,7 @@ import ClickSpark from "@/components/click-spark"
 import { CartProvider } from "@/components/cart-provider"
 import { WishlistProvider } from "@/components/wishlist-provider"
 import { CartDrawer } from "@/components/cart-drawer"
+import { SiteChrome } from "@/components/site-chrome"
 import { Toaster } from "@/components/ui/sonner"
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site"
 import "./globals.css"
@@ -97,7 +98,9 @@ export default function RootLayout({
             >
               <CartProvider>
                 <WishlistProvider>
-                  <LenisProvider>{children}</LenisProvider>
+                  <LenisProvider>
+                    <SiteChrome>{children}</SiteChrome>
+                  </LenisProvider>
                   <CartDrawer />
                 </WishlistProvider>
               </CartProvider>

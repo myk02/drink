@@ -82,7 +82,7 @@ function GymsContent() {
         {gyms && gyms.length === 0 && (
           <div className="text-center py-16 bg-white/5 border border-white/10">
             <p className="text-white font-bold">No partner gyms listed yet</p>
-            <p className="text-white/40 font-mono text-sm mt-1">New gyms join weekly — check back soon or partner with us below.</p>
+            <p className="text-white/40 font-mono text-sm mt-1">Check back for updates or partner with us below.</p>
           </div>
         )}
 

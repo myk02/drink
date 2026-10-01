@@ -7,7 +7,7 @@ import type { Doc } from "@/convex/_generated/dataModel"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowLeft, ShoppingBag, Search, SlidersHorizontal, X, Star, Heart, Eye, Truck, ShieldCheck, Zap } from "lucide-react"
+import { ArrowLeft, ShoppingBag, Search, SlidersHorizontal, X, Heart, Eye, Truck, ShieldCheck, Zap } from "lucide-react"
 import { toast } from "sonner"
 import { ClientOnly } from "@/components/client-only"
 import { AddToCartButton } from "@/components/cart-drawer"
@@ -17,7 +17,7 @@ import { formatKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
 import { SITE_URL } from "@/lib/site"
 import { useCart } from "@/components/cart-provider"
 import { useWishlist } from "@/components/wishlist-provider"
-import { getRating, getStockStatus, sortProducts, SORT_OPTIONS, FILTER_TYPES, CAN_FILTERS, PRODUCT_FAQS, type SortValue } from "@/lib/shop-data"
+import { getStockStatus, sortProducts, SORT_OPTIONS, FILTER_TYPES, CAN_FILTERS, FLAVOR_FILTERS, PRODUCT_FAQS, type SortValue } from "@/lib/shop-data"
 
 type Product = Doc<"products">
 
@@ -57,6 +57,7 @@ function ShopContent() {
 
   const [typeFilter, setTypeFilter] = useState<string>("all")
   const [canFilter, setCanFilter] = useState<string>("all")
+  const [flavorFilter, setFlavorFilter] = useState<string>("all")
   const [q, setQ] = useState("")
   const [sort, setSort] = useState<SortValue>("bestselling")
   const [showFilters, setShowFilters] = useState(false)
@@ -81,15 +82,16 @@ function ShopContent() {
     let list = [...sortedRaw]
     if (typeFilter !== "all") list = list.filter((p) => p.type === typeFilter)
     if (canFilter !== "all") list = list.filter((p) => String(p.canCount) === canFilter)
+    if (flavorFilter !== "all") list = list.filter((p) => p.flavorName === flavorFilter)
     if (saleOnly) list = list.filter((p) => p.compareAtKes && p.compareAtKes > p.priceKes)
     if (q.trim()) {
       const term = q.trim().toLowerCase()
       list = list.filter((p) => `${p.name} ${p.description} ${p.flavorName ?? ""}`.toLowerCase().includes(term))
     }
     return sortProducts(list, sort)
-  }, [sortedRaw, typeFilter, canFilter, saleOnly, q, sort])
+  }, [sortedRaw, typeFilter, canFilter, flavorFilter, saleOnly, q, sort])
 
-  const activeCount = (typeFilter !== "all" ? 1 : 0) + (canFilter !== "all" ? 1 : 0) + (saleOnly ? 1 : 0) + (q ? 1 : 0)
+  const activeCount = (typeFilter !== "all" ? 1 : 0) + (canFilter !== "all" ? 1 : 0) + (flavorFilter !== "all" ? 1 : 0) + (saleOnly ? 1 : 0) + (q ? 1 : 0)
   const freeShipThreshold = FREE_DELIVERY_THRESHOLD_KES
   const progress = Math.min(100, Math.round((cart.subtotalKes / freeShipThreshold) * 100))
 
@@ -138,7 +140,7 @@ function ShopContent() {
     <div className="min-h-screen bg-[#121212]">
       {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />}
 
-      <div className="max-w-7xl mx-auto px-6 py-10 md:py-12">
+      <div className="max-w-7xl mx-auto px-6 pt-24 pb-12 md:pt-28">
         {/* Breadcrumb */}
         <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-white/40 font-mono text-xs mb-6">
           <Link href="/" className="hover:text-[#AFFF00] transition-colors">Home</Link>
@@ -165,7 +167,7 @@ function ShopContent() {
             </h1>
             {/* SEO intro 120 words */}
             <p className="text-white/60 font-mono text-sm mt-4 leading-relaxed max-w-2xl">
-              Shop GiGi Energy cases and packs direct from Nairobi. Zero sugar, 75 mg natural caffeine, 100% natural flavours — in flavours born in Kenya: Lemon Lime, Pineapple Coconut, Mango Passion, Baobab Berry and more. Choose a 6-can Taster to sample, grab a flavour 12-pack, or fill the fridge with the mixed 24-case for offices, gyms and house drops. Pay securely with M-Pesa or card via Paystack and get fresh batches in 1–2 days across Nairobi (CBD KSh 200, Westlands/Kilimani KSh 250, up to KSh 400). Prices shown include VAT.
+              Pick a flavour pack, add it to your cart, and check out with M-Pesa or card. Zero sugar, 75 mg caffeine, 1–2 day Nairobi delivery. VAT included.
             </p>
             <div className="mt-4 flex flex-wrap gap-2">
               {[
@@ -182,12 +184,19 @@ function ShopContent() {
 
           <div className="lg:col-span-5 lg:sticky lg:top-24 space-y-3">
             <div className="bg-white/5 border border-white/10 p-5">
-              <div className="flex items-center justify-between">
-                <p className="text-white font-bold text-sm flex items-center gap-2">
-                  <ShoppingBag className="w-4 h-4 text-[#AFFF00]" /> Your cart
-                </p>
-                <span className="text-white/40 font-mono text-xs">{cart.totalCount} items • {formatKes(cart.subtotalKes)}</span>
-              </div>
+              <button
+                type="button"
+                onClick={cart.openCart}
+                className="w-full text-left cursor-pointer"
+                aria-label="Open cart"
+              >
+                <div className="flex items-center justify-between">
+                  <p className="text-white font-bold text-sm flex items-center gap-2">
+                    <ShoppingBag className="w-4 h-4 text-[#AFFF00]" /> Your cart
+                  </p>
+                  <span className="text-white/40 font-mono text-xs">{cart.totalCount} items • {formatKes(cart.subtotalKes)}</span>
+                </div>
+              </button>
               {/* Free shipping progress */}
               <div className="mt-3">
                 <div className="flex justify-between text-white/40 font-mono text-xs">
@@ -226,7 +235,7 @@ function ShopContent() {
           <div className="hidden md:flex items-center gap-2 text-white/60 font-mono text-xs">
             <span aria-live="polite">{storeOffline ? "Store offline" : filtered ? `${filtered.length} products` : "—"}</span>
             {activeCount > 0 && (
-              <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }} className="text-[#AFFF00] hover:underline ml-2 cursor-pointer">
+              <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setFlavorFilter("all"); setSaleOnly(false); setQ("") }} className="text-[#AFFF00] hover:underline ml-2 cursor-pointer">
                 Clear all
               </button>
             )}
@@ -270,10 +279,12 @@ function ShopContent() {
               setTypeFilter={setTypeFilter}
               canFilter={canFilter}
               setCanFilter={setCanFilter}
+              flavorFilter={flavorFilter}
+              setFlavorFilter={setFlavorFilter}
               saleOnly={saleOnly}
               setSaleOnly={setSaleOnly}
               counts={counts}
-              clearAll={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }}
+              clearAll={() => { setTypeFilter("all"); setCanFilter("all"); setFlavorFilter("all"); setSaleOnly(false); setQ("") }}
               activeCount={activeCount}
             />
           </aside>
@@ -293,6 +304,12 @@ function ShopContent() {
                   <span className="inline-flex items-center gap-1 bg-[#AFFF00] text-[#121212] font-mono text-xs px-2 py-1">
                     {CAN_FILTERS.find((f) => f.value === canFilter)?.label}
                     <button onClick={() => setCanFilter("all")} aria-label="Remove size filter" className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
+                  </span>
+                )}
+                {flavorFilter !== "all" && (
+                  <span className="inline-flex items-center gap-1 bg-[#AFFF00] text-[#121212] font-mono text-xs px-2 py-1">
+                    {flavorFilter}
+                    <button onClick={() => setFlavorFilter("all")} aria-label="Remove flavour filter" className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {saleOnly && (
@@ -331,7 +348,7 @@ function ShopContent() {
                 <ShoppingBag className="w-10 h-10 text-[#AFFF00]/40 mx-auto mb-4" />
                 <p className="text-white font-bold">No products match that filter</p>
                 <p className="text-white/40 font-mono text-sm mt-1">Try clearing filters or search.</p>
-                <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }} className="mt-4 text-[#AFFF00] font-mono text-sm hover:underline cursor-pointer">Clear all →</button>
+                <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setFlavorFilter("all"); setSaleOnly(false); setQ("") }} className="mt-4 text-[#AFFF00] font-mono text-sm hover:underline cursor-pointer">Clear all →</button>
               </div>
             )}
 
@@ -400,16 +417,18 @@ function ShopContent() {
                   setTypeFilter={setTypeFilter}
                   canFilter={canFilter}
                   setCanFilter={setCanFilter}
+                  flavorFilter={flavorFilter}
+                  setFlavorFilter={setFlavorFilter}
                   saleOnly={saleOnly}
                   setSaleOnly={setSaleOnly}
                   counts={counts}
-                  clearAll={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }}
+                  clearAll={() => { setTypeFilter("all"); setCanFilter("all"); setFlavorFilter("all"); setSaleOnly(false); setQ("") }}
                   activeCount={activeCount}
                 />
               </div>
               <div className="p-6 border-t border-white/10 flex gap-3">
                 <button onClick={() => setShowFilters(false)} className="flex-1 bg-[#AFFF00] text-[#121212] py-3 font-black text-sm cursor-pointer">Show {filtered?.length ?? 0} products</button>
-                <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }} className="px-4 py-3 border border-white/10 text-white font-mono text-sm cursor-pointer">Clear</button>
+                <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setFlavorFilter("all"); setSaleOnly(false); setQ("") }} className="px-4 py-3 border border-white/10 text-white font-mono text-sm cursor-pointer">Clear</button>
               </div>
             </motion.div>
           </>
@@ -435,14 +454,7 @@ function ShopContent() {
                     <span className="text-[#AFFF00] font-black text-2xl">{formatKes(quick.priceKes)}</span>
                     {quick.compareAtKes && <span className="text-white/30 font-mono text-sm line-through">{formatKes(quick.compareAtKes)}</span>}
                   </div>
-                  {(() => { const r = getRating(quick.slug); return (
-                    <div className="flex items-center gap-2 text-white/60 font-mono text-xs">
-                      <span className="flex items-center gap-1 text-[#AFFF00]"><Star className="w-3.5 h-3.5 fill-[#AFFF00]" /> {r.rating.toFixed(1)}</span>
-                      <span>({r.count})</span>
-                      <span className="text-white/20">•</span>
-                      <span className={getStockStatus(quick).tone === "low" ? "text-[#f59e0b]" : "text-[#AFFF00]"}>{getStockStatus(quick).label}</span>
-                    </div>
-                  )})()}
+                  <p className="font-mono text-xs text-[#AFFF00]">{getStockStatus(quick).label}</p>
                   <p className="text-white/50 font-mono text-xs leading-relaxed">Zero sugar • 75mg caffeine • Natural flavours • 1–2 day Nairobi delivery • M-Pesa/card.</p>
                   <AddToCartButton product={{ _id: quick._id, name: quick.name, slug: quick.slug, image: quick.image, canCount: quick.canCount, priceKes: quick.priceKes, compareAtKes: quick.compareAtKes }} label={`Add to Cart · ${formatKes(quick.priceKes)}`} />
                   <Link href={`/shop/${quick.slug}`} onClick={() => setQuick(null)} className="block text-center border border-white/10 text-white py-3 font-bold text-sm hover:border-[#AFFF00]/30 transition-colors">View full details →</Link>
@@ -456,9 +468,10 @@ function ShopContent() {
   )
 }
 
-function FilterPanel({ typeFilter, setTypeFilter, canFilter, setCanFilter, saleOnly, setSaleOnly, counts, clearAll, activeCount }: {
+function FilterPanel({ typeFilter, setTypeFilter, canFilter, setCanFilter, flavorFilter, setFlavorFilter, saleOnly, setSaleOnly, counts, clearAll, activeCount }: {
   typeFilter: string; setTypeFilter: (v: string) => void
   canFilter: string; setCanFilter: (v: string) => void
+  flavorFilter: string; setFlavorFilter: (v: string) => void
   saleOnly: boolean; setSaleOnly: (v: boolean) => void
   counts: { all: number; starter: number; single: number; mixed: number; c6: number; c12: number; c24: number }
   clearAll: () => void
@@ -488,13 +501,31 @@ function FilterPanel({ typeFilter, setTypeFilter, canFilter, setCanFilter, saleO
 
       <div>
         <h4 className="text-white/60 font-mono text-xs tracking-widest mb-3">SIZE</h4>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {CAN_FILTERS.map((f) => {
             const c = f.value === "all" ? counts.all : f.value === "6" ? counts.c6 : f.value === "12" ? counts.c12 : counts.c24
             const active = canFilter === f.value
             return (
               <button key={f.value} onClick={() => setCanFilter(f.value)} className={`px-2 py-2 border font-mono text-xs cursor-pointer ${active ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00] font-bold" : "bg-white/5 text-white/60 border-white/10 hover:border-[#AFFF00]/30"}`}>
                 <div>{f.label}</div><div className={active ? "text-[#121212]/60 text-[11px]" : "text-white/30 text-[11px]"}>{c}</div>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-white/60 font-mono text-xs tracking-widest mb-3">FLAVOUR</h4>
+        <div className="flex flex-wrap gap-2">
+          {FLAVOR_FILTERS.map((f) => {
+            const active = flavorFilter === f.value
+            return (
+              <button
+                key={f.value}
+                onClick={() => setFlavorFilter(f.value)}
+                className={`px-2.5 py-1.5 border font-mono text-[11px] cursor-pointer ${active ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00] font-bold" : "bg-white/5 text-white/60 border-white/10 hover:border-[#AFFF00]/30"}`}
+              >
+                {f.label}
               </button>
             )
           })}
@@ -516,7 +547,6 @@ function FilterPanel({ typeFilter, setTypeFilter, canFilter, setCanFilter, saleO
 }
 
 function ProductCard({ product, index, onQuick }: { product: Product; index: number; onQuick: () => void }) {
-  const rating = getRating(product.slug)
   const stock = getStockStatus(product)
   const discount = product.compareAtKes && product.compareAtKes > product.priceKes ? Math.round((1 - product.priceKes / product.compareAtKes) * 100) : null
   const { toggle, isWishlisted } = useWishlist()
@@ -527,7 +557,7 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: Math.min(index * 0.05, 0.3) }}
-      className="bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden group hover:border-[#AFFF00]/30 transition-all duration-300 flex flex-col"
+      className="bg-white/5 backdrop-blur-sm border border-white/10 overflow-hidden group hover:border-[#AFFF00]/40 hover:bg-white/[0.07] transition-all duration-300 flex flex-col"
     >
       <Link href={`/shop/${product.slug}`} className="relative aspect-square block overflow-hidden bg-white/[0.03]">
         <Image
@@ -539,12 +569,21 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
           priority={index < 3}
         />
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
+        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10">
           {discount && <span className="bg-[#AFFF00] text-[#121212] font-black text-xs px-2 py-1">SAVE {discount}%</span>}
-          {rating.badge && <span className="bg-[#121212] text-[#AFFF00] font-mono text-[11px] font-bold px-2 py-1 border border-[#AFFF00]/20">{rating.badge.toUpperCase()}</span>}
         </div>
-        <span className="absolute top-3 right-3 bg-[#121212]/80 text-white/70 font-mono text-xs px-2 py-1 border border-white/10">{product.canCount} CANS</span>
-        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-2 z-10">
+          <span className="bg-[#121212]/80 text-white/70 font-mono text-xs px-2 py-1 border border-white/10">{product.canCount} CANS</span>
+          <button
+            onClick={(e) => { e.preventDefault(); const was = isWishlisted(product._id); toggle(product._id); toast.success(was ? "Removed from wishlist" : "Added to wishlist") }}
+            className={`w-8 h-8 flex items-center justify-center border transition-colors cursor-pointer ${wished ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]" : "bg-white/5 text-white/60 border-white/10 hover:text-[#AFFF00] hover:border-[#AFFF00]/30"}`}
+            aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+            title={wished ? "Wishlisted" : "Wishlist"}
+          >
+            <Heart className={`w-4 h-4 ${wished ? "fill-[#121212]" : ""}`} />
+          </button>
+        </div>
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-10">
           <span className={`font-mono text-[11px] px-2 py-1 border ${stock.tone === "low" ? "bg-[#f59e0b] text-[#121212] border-[#f59e0b]" : stock.tone === "out" ? "bg-red-500 text-white border-red-500" : "bg-white/10 text-white/70 border-white/10"}`}>{stock.label}</span>
           <button
             onClick={(e) => { e.preventDefault(); onQuick() }}
@@ -554,14 +593,6 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
             <Eye className="w-3.5 h-3.5" /> Quick view
           </button>
         </div>
-        <button
-          onClick={(e) => { e.preventDefault(); const was = isWishlisted(product._id); toggle(product._id); toast.success(was ? "Removed from wishlist" : "Added to wishlist") }}
-          className={`absolute top-3 right-3 mt-8 w-8 h-8 flex items-center justify-center border transition-colors cursor-pointer ${wished ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]" : "bg-white/5 text-white/60 border-white/10 hover:text-[#AFFF00] hover:border-[#AFFF00]/30"}`}
-          aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
-          title={wished ? "Wishlisted" : "Wishlist"}
-        >
-          <Heart className={`w-4 h-4 ${wished ? "fill-[#121212]" : ""}`} />
-        </button>
       </Link>
 
       <div className="p-4 md:p-5 flex flex-col flex-1">
@@ -569,17 +600,6 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
           <h3 className="text-white font-bold text-[15px] leading-snug group-hover/title:text-[#AFFF00] transition-colors">{product.name}</h3>
         </Link>
         <p className="text-white/50 font-mono text-xs mt-1.5 leading-relaxed line-clamp-2">{product.description}</p>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1.5 mt-2">
-          <span className="flex items-center gap-0.5">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <Star key={i} className={`w-3 h-3 ${i < Math.round(rating.rating) ? "text-[#AFFF00] fill-[#AFFF00]" : "text-white/15"}`} />
-            ))}
-          </span>
-          <span className="text-white/60 font-mono text-xs">{rating.rating.toFixed(1)}</span>
-          <span className="text-white/30 font-mono text-xs">({rating.count})</span>
-        </div>
 
         <div className="flex items-baseline gap-2 mt-3">
           <span className="text-[#AFFF00] font-black text-lg">{formatKes(product.priceKes)}</span>

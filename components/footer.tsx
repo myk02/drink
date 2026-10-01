@@ -6,6 +6,7 @@ import Link from "next/link"
 import { useMutation } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
+import { ClientOnly } from "@/components/client-only"
 
 const containerVariants: Variants = {
   hidden: { opacity: 0 },
@@ -32,32 +33,9 @@ const itemVariants: Variants = {
 }
 
 export function Footer() {
-  const [email, setEmail] = useState("")
   const [isHovering, setIsHovering] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [justSubscribed, setJustSubscribed] = useState(false)
   const footerRef = useRef(null)
   const isInView = useInView(footerRef, { once: true, margin: "-100px" })
-  const subscribe = useMutation(api.newsletter.subscribe)
-
-  const handleSubmit = async () => {
-    if (isSubmitting) return
-    setIsSubmitting(true)
-    try {
-      const result = await subscribe({ email })
-      if (result.alreadySubscribed) {
-        toast.info("You're already on the list — energy's coming.")
-      } else {
-        toast.success("You're in! Welcome to the GiGi crew.")
-      }
-      setEmail("")
-      setJustSubscribed(true)
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong. Try again.")
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
 
   const footerLinks = [
     {
@@ -138,64 +116,9 @@ export function Footer() {
           transition={{ duration: 0.6, delay: 0.2 }}
           className="max-w-xl mx-auto mb-12"
         >
-          <form
-            className="flex flex-col sm:flex-row gap-3"
-            onSubmit={(e) => {
-              e.preventDefault()
-              void handleSubmit()
-            }}
-          >
-            <motion.div className="flex-1 relative">
-              <motion.input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                aria-label="Email address for newsletter"
-                autoComplete="email"
-                disabled={isSubmitting}
-                className="w-full bg-white/5 border-2 border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-all duration-300"
-                whileFocus={{ borderColor: "#AFFF00" }}
-              />
-              <motion.div
-                className="absolute inset-0 rounded-xl pointer-events-none"
-                animate={email.length > 0 ? { boxShadow: "0 0 20px rgba(175,255,0,0.2)" } : { boxShadow: "none" }}
-              />
-            </motion.div>
-            <motion.button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-[#AFFF00] disabled:opacity-60 text-[#121212] px-6 py-3 rounded-xl font-bold text-sm tracking-wide whitespace-nowrap relative overflow-hidden"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            >
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                initial={{ x: "-100%" }}
-                whileHover={{ x: "100%" }}
-                transition={{ duration: 0.5 }}
-              />
-              <motion.span
-                className="relative z-10"
-                animate={isSubmitting ? { opacity: [1, 0.5, 1] } : {}}
-                transition={{ duration: 0.5, repeat: isSubmitting ? Number.POSITIVE_INFINITY : 0 }}
-              >
-                {isSubmitting ? "Joining..." : "Get 25% Off"}
-              </motion.span>
-            </motion.button>
-          </form>
-          <motion.p
-            className="text-white/40 font-mono text-xs mt-2 text-center"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4 }}
-            aria-live="polite"
-          >
-            {justSubscribed ? "✓ You're on the list — check your inbox for 25% off." : "Join 50k+ dreamers. No spam, just energy."}
-          </motion.p>
+          <ClientOnly fallback={<p className="text-white/40 font-mono text-xs text-center">Join the GiGi crew. No spam, just energy.</p>}>
+            <NewsletterForm />
+          </ClientOnly>
         </motion.div>
 
         <motion.div
@@ -293,5 +216,85 @@ export function Footer() {
         GiGi
       </motion.div>
     </footer>
+  )
+}
+
+function NewsletterForm() {
+  const [email, setEmail] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [justSubscribed, setJustSubscribed] = useState(false)
+  const subscribe = useMutation(api.newsletter.subscribe)
+
+  const handleSubmit = async () => {
+    if (isSubmitting) return
+    setIsSubmitting(true)
+    try {
+      const result = await subscribe({ email })
+      if (result.alreadySubscribed) toast.info("You're already on the list — energy's coming.")
+      else toast.success("You're in! Welcome to the GiGi crew.")
+      setEmail("")
+      setJustSubscribed(true)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Something went wrong. Try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <>
+      <form className="flex flex-col sm:flex-row gap-3" onSubmit={(e) => { e.preventDefault(); void handleSubmit() }}>
+        <label className="flex-1 relative">
+          <span className="sr-only">Email address for newsletter</span>
+          <motion.input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="your@email.com"
+            autoComplete="email"
+            disabled={isSubmitting}
+            className="w-full bg-white/5 border-2 border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-all duration-300"
+            whileFocus={{ borderColor: "#AFFF00" }}
+          />
+          <motion.div
+            className="absolute inset-0 rounded-xl pointer-events-none"
+            animate={email.length > 0 ? { boxShadow: "0 0 20px rgba(175,255,0,0.2)" } : { boxShadow: "none" }}
+          />
+        </label>
+        <motion.button
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-[#AFFF00] disabled:opacity-60 text-[#121212] px-6 py-3 rounded-xl font-bold text-sm tracking-wide whitespace-nowrap relative overflow-hidden"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+            initial={{ x: "-100%" }}
+            whileHover={{ x: "100%" }}
+            transition={{ duration: 0.5 }}
+          />
+          <motion.span
+            className="relative z-10"
+            animate={isSubmitting ? { opacity: [1, 0.5, 1] } : {}}
+            transition={{ duration: 0.5, repeat: isSubmitting ? Number.POSITIVE_INFINITY : 0 }}
+          >
+            {isSubmitting ? "Joining..." : "Join the list"}
+          </motion.span>
+        </motion.button>
+      </form>
+      <motion.p
+        className="text-white/40 font-mono text-xs mt-2 text-center"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ delay: 0.4 }}
+        aria-live="polite"
+      >
+        {justSubscribed ? "✓ You're on the list — flavour drops and tasting dates, no spam." : "Join the GiGi crew. No spam, just energy."}
+      </motion.p>
+    </>
   )
 }

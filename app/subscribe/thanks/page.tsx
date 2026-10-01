@@ -13,31 +13,25 @@ function ThanksContent() {
   // One-time localStorage read during lazy state init — no setState-in-effect
   // cascade. This component only renders client-side (inside ClientOnly).
   // Falls back to ?reference= from Paystack when storage is cleared.
-  const [stored] = useState<{ email: string | null; reference: string | null }>(() => {
+  const [stored] = useState<{ reference: string | null }>(() => {
     try {
       const last = window.localStorage.getItem("gigi-last-sub")
       if (last) {
-        const parsed = JSON.parse(last) as { email?: string; reference?: string }
-        return { email: parsed.email ?? null, reference: parsed.reference ?? null }
+        const parsed = JSON.parse(last) as { reference?: string }
+        return { reference: parsed.reference ?? null }
       }
     } catch {
       // ignore
     }
-    return { email: null, reference: null }
+    return { reference: null }
   })
-  const [emailInput, setEmailInput] = useState("")
-  const [emailOverride, setEmailOverride] = useState<string | null>(null)
-  const email = stored.email ?? emailOverride
-  const reference = stored.reference ?? urlReference
+  const reference = urlReference ?? stored.reference
   const [checking, setChecking] = useState(false)
   const [checkoutFailed, setCheckoutFailed] = useState(false)
   const attemptedRef = useRef<string | null>(null)
   const verify = useAction(api.payments.verifySubscriptionPayment)
 
-  const recent = useQuery(
-    api.subscriptions.getRecentForEmail,
-    email ? { email } : "skip"
-  )
+  const recent = useQuery(api.subscriptions.getRecentForReference, reference ? { reference } : "skip")
 
   // One automatic direct-verification attempt while the webhook may still be
   // in flight (same pattern as the order success page).
@@ -53,37 +47,15 @@ function ThanksContent() {
       .finally(() => setChecking(false))
   }, [pending, reference, verify])
 
-  if (!email || !recent || recent.status === "pending") {
-    // No email at all (cleared storage, no Paystack ref) — ask for it.
-    if (!email && !checking) {
+  if (!recent || recent.status === "pending") {
+    if (!reference) {
       return (
         <div className="text-center max-w-md mx-auto py-10">
           <Clock className="w-12 h-12 text-[#f59e0b] mx-auto mb-4" />
-          <h1 className="text-2xl font-black text-white tracking-tighter">FIND YOUR MEMBERSHIP</h1>
+          <h1 className="text-2xl font-black text-white tracking-tighter">CHECK YOUR MEMBERSHIP</h1>
           <p className="text-white/50 font-mono text-sm mt-3 leading-relaxed">
-            Enter the email you used to join so we can check your membership status.
+            We couldn&apos;t find a payment reference in this link. Sign in to your account to view your membership.
           </p>
-          <form
-            className="flex flex-col sm:flex-row gap-2 justify-center mt-6"
-            onSubmit={(e) => {
-              e.preventDefault()
-              const v = emailInput.trim().toLowerCase()
-              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) setEmailOverride(v)
-            }}
-          >
-            <input
-              type="email"
-              required
-              aria-label="Email used to join"
-              value={emailInput}
-              onChange={(e) => setEmailInput(e.target.value)}
-              placeholder="you@example.com"
-              className="bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
-            />
-            <button type="submit" className="bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm cursor-pointer">
-              Check
-            </button>
-          </form>
           <Link href="/account" className="inline-flex items-center justify-center bg-white/10 text-white px-6 py-3 font-bold text-sm tracking-wide hover:bg-white/20 transition-colors mt-4">
             Go to My Account
           </Link>
@@ -94,7 +66,7 @@ function ThanksContent() {
       <div className="text-center max-w-md mx-auto py-10">
         <Clock className="w-12 h-12 text-[#f59e0b] mx-auto mb-4" />
         <h1 className="text-2xl font-black text-white tracking-tighter">CONFIRMING YOUR MEMBERSHIP</h1>
-        <p className="text-white/50 font-mono text-sm mt-3 leading-relaxed">
+        <p className="text-white/50 font-mono text-sm mt-3 leading-relaxed" role="status" aria-live="polite">
           Payment confirmation usually lands within a minute. This page updates automatically — or head to your account to check status.
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">

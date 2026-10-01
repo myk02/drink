@@ -26,7 +26,7 @@ export default function ContactPage() {
           GET IN <span className="text-[#AFFF00]">TOUCH</span>
         </h1>
         <p className="text-white/60 font-mono text-sm mt-4 max-w-xl">
-          Questions about orders, partnerships, or stocking GiGi? Send us a message — we reply within 24 hours.
+          Questions about orders, partnerships, or stocking GiGi? Send us a message — we reply within 24 hours. To buy packs now, <Link href="/shop" className="text-[#AFFF00] hover:underline">open the shop</Link>.
         </p>
         <div className="mt-12 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-8">
           <ClientOnly
