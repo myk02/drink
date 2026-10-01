@@ -54,8 +54,9 @@ function TastingEventsContent() {
         </motion.div>
 
         {!events && (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center py-20" role="status" aria-label="Loading tasting events">
             <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+            <span className="sr-only">Loading tasting events…</span>
           </div>
         )}
 
@@ -70,9 +71,12 @@ function TastingEventsContent() {
             />
           ))}
           {events?.length === 0 && (
-            <div className="col-span-2 text-center py-20">
+            <div className="col-span-2 text-center py-20 bg-white/5 border border-white/10">
               <p className="text-white/40 font-mono text-lg">No tasting events scheduled yet. Check back soon!</p>
               <p className="text-white/20 font-mono text-sm mt-2">New events are added weekly across Nairobi.</p>
+              <Link href="/events" className="inline-block mt-6 bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
+                Browse All Activations
+              </Link>
             </div>
           )}
         </div>
@@ -176,9 +180,9 @@ function TastingEventCard({ event, index, isRegistered, onRegistered }: { event:
         {open && !isRegistered && (
           <motion.form initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden" onSubmit={(e) => { e.preventDefault(); void handleRegister() }}>
             <div className="pt-4 space-y-3">
-              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name *" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
-              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address *" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
-              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone Number" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              <input required value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name *" autoComplete="name" aria-label="Full name" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email Address *" autoComplete="email" aria-label="Email address" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone Number" autoComplete="tel" inputMode="tel" aria-label="Phone number" disabled={isSubmitting} className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors" />
               <button type="submit" disabled={isSubmitting || !name.trim() || !email.trim()} className="w-full bg-white/10 hover:bg-white/20 disabled:opacity-50 text-white px-4 py-3 rounded-xl font-bold text-sm tracking-wide transition-colors cursor-pointer">{isSubmitting ? "Registering..." : "Confirm Registration"}</button>
             </div>
           </motion.form>

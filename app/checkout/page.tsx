@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { ArrowLeft, Lock, Loader2 } from "lucide-react"
+import { ArrowLeft, Lock, Loader2, ChevronDown } from "lucide-react"
 import { useAction, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
@@ -117,8 +117,9 @@ function CheckoutContent() {
         </h1>
 
         {!cart.hydrated ? (
-          <div className="flex items-center justify-center py-20">
+          <div className="flex items-center justify-center py-20" role="status" aria-label="Loading cart">
             <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+            <span className="sr-only">Loading your cart…</span>
           </div>
         ) : cart.items.length === 0 ? (
           <div className="mt-16 bg-white/5 border border-white/10 p-12 text-center">
@@ -141,21 +142,25 @@ function CheckoutContent() {
 
               <section className="bg-white/5 border border-white/10 p-6 space-y-4">
                 <h2 className="text-white font-bold tracking-tight mb-2">Delivery</h2>
-                <select
-                  required
-                  value={form.zone}
-                  onChange={(e) => setForm({ ...form, zone: e.target.value })}
-                  className={`${inputClass} appearance-none cursor-pointer ${!form.zone ? "text-white/40" : ""}`}
-                >
-                  <option value="" disabled className="bg-[#121212]">Delivery Zone *</option>
-                  {DELIVERY_ZONES.map((z) => (
-                    <option key={z.name} value={z.name} className="bg-[#121212] text-white">
-                      {z.name} — {formatKes(z.feeKes)}
-                    </option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <select
+                    required
+                    aria-label="Delivery zone"
+                    value={form.zone}
+                    onChange={(e) => setForm({ ...form, zone: e.target.value })}
+                    className={`${inputClass} appearance-none cursor-pointer pr-10 ${!form.zone ? "text-white/40" : ""}`}
+                  >
+                    <option value="" disabled className="bg-[#121212]">Delivery Zone *</option>
+                    {DELIVERY_ZONES.map((z) => (
+                      <option key={z.name} value={z.name} className="bg-[#121212] text-white">
+                        {z.name} — {formatKes(z.feeKes)}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-white/40 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" aria-hidden="true" />
+                </div>
                 <textarea required aria-label="Delivery address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Delivery Address * (building, street, landmark)" rows={2} className={`${inputClass} resize-none`} />
-                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Delivery Notes (optional — gate code, best time...)" rows={2} className={`${inputClass} resize-none`} />
+                <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} aria-label="Delivery notes (optional)" placeholder="Delivery Notes (optional — gate code, best time...)" rows={2} className={`${inputClass} resize-none`} />
               </section>
 
               <p className="text-white/30 font-mono text-xs flex items-center gap-2">
@@ -217,6 +222,7 @@ function CheckoutContent() {
               <button
                 type="submit"
                 disabled={cart.items.length === 0 || isSubmitting || !form.zone}
+                aria-describedby={!form.zone ? "zone-hint" : undefined}
                 className="w-full bg-[#AFFF00] disabled:bg-white/10 disabled:text-white/40 text-[#121212] py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (
@@ -227,6 +233,11 @@ function CheckoutContent() {
                   <>Pay with M-Pesa or Card</>
                 )}
               </button>
+              {!form.zone && (
+                <p id="zone-hint" className="text-white/50 font-mono text-[11px] text-center">
+                  Select a delivery zone above to continue
+                </p>
+              )}
             </motion.aside>
           </form>
         )}

@@ -55,7 +55,7 @@ function PortalContent() {
   const [showCancelPanel, setShowCancelPanel] = useState(false)
 
   if (!isLoaded) {
-    return <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin mx-auto my-16" />
+    return <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin mx-auto my-16" role="status" aria-label="Loading account" />
   }
 
   if (!isSignedIn) {
@@ -69,7 +69,7 @@ function PortalContent() {
   }
 
   if (data === undefined) {
-    return <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin mx-auto my-16" />
+    return <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin mx-auto my-16" role="status" aria-label="Loading membership" />
   }
 
   if (data === null) {
@@ -79,6 +79,7 @@ function PortalContent() {
         <p className="text-white/60 font-mono text-sm leading-relaxed">
           We couldn&apos;t find an account record linked to your sign-in yet. If you just created this account,
           give it a minute and reload — membership records sync automatically.
+          Still stuck? <a href="mailto:support@gigi.energy" className="text-[#AFFF00] hover:underline">support@gigi.energy</a>
         </p>
         <button
           onClick={() => window.location.reload()}
@@ -263,9 +264,9 @@ function PortalContent() {
         ) : (
           <ul className="space-y-3">
             {history.map((e: { _id: string; type: string; detail?: string | null; amountKes?: number | null; createdAt: number }) => (
-              <li key={e._id} className="flex items-center justify-between font-mono text-xs gap-4">
-                <span className="text-white/60">{EVENT_LABELS[e.type] ?? e.type}{e.detail ? ` · ${e.detail}` : ""}<span className="text-white/30"> · {formatDate(e.createdAt)}</span></span>
-                <span className="text-white/30 whitespace-nowrap ml-4">
+              <li key={e._id} className="flex items-center justify-between font-mono text-xs gap-4 min-w-0">
+                <span className="text-white/60 min-w-0 break-words">{EVENT_LABELS[e.type] ?? e.type}{e.detail ? ` · ${e.detail}` : ""}<span className="text-white/30"> · {formatDate(e.createdAt)}</span></span>
+                <span className="text-white/30 whitespace-nowrap ml-4 shrink-0">
                   {e.amountKes ? formatKes(e.amountKes) : "—"}
                 </span>
               </li>
@@ -306,7 +307,7 @@ export default function AccountPage() {
           <UserButton />
         </div>
         <span className="font-mono text-[#AFFF00] text-xs tracking-widest inline-block">YOUR MEMBERSHIP</span>
-        <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter mt-2 mb-12">
+        <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mt-2 mb-12">
           MY <span className="text-[#AFFF00]">ACCOUNT</span>
         </h1>
         <ClientOnly fallback={

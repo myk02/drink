@@ -59,7 +59,7 @@ export function HeroSection() {
     <section
       id="hero"
       ref={ref}
-      className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white noise-overlay"
+      className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-white noise-overlay scroll-mt-20"
     >
       {/* Subtle gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-white via-[#AFFF00]/5 to-white" />
@@ -105,7 +105,7 @@ export function HeroSection() {
             <div className="space-y-1 overflow-hidden">
               <motion.h1
                 style={{ x: textX1 }}
-                className="text-5xl md:text-7xl font-black tracking-tighter text-[#121212] leading-[0.9]"
+                className="text-5xl md:text-7xl font-black tracking-tighter text-[#121212] leading-[0.9] break-words"
               >
                 <motion.span
                   variants={fadeUpVariants}
@@ -248,6 +248,7 @@ export function HeroSection() {
 
         <motion.div
           className="absolute bottom-6 left-1/2 -translate-x-1/2"
+          aria-hidden="true"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.5, duration: 0.8 }}

@@ -99,6 +99,8 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Your Name *"
+          aria-label="Your name"
+          autoComplete="name"
           disabled={isSubmitting}
           className={inputClass}
         />
@@ -107,6 +109,8 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
             value={company}
             onChange={(e) => setCompany(e.target.value)}
             placeholder={category === "organizer" ? "Organization / Event Name" : "Company Name"}
+            aria-label={category === "organizer" ? "Organization or event name" : "Company name"}
+            autoComplete="organization"
             disabled={isSubmitting}
             className={inputClass}
           />
@@ -119,6 +123,8 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="Email Address *"
+          aria-label="Email address"
+          autoComplete="email"
           disabled={isSubmitting}
           className={inputClass}
         />
@@ -127,6 +133,9 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="Phone Number"
+          aria-label="Phone number"
+          autoComplete="tel"
+          inputMode="tel"
           disabled={isSubmitting}
           className={inputClass}
         />
@@ -137,6 +146,7 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         placeholder={`${messagePlaceholder} (min 10 characters)`}
+        aria-label="Your message (minimum 10 characters)"
         rows={3}
         disabled={isSubmitting}
         className={`${inputClass} resize-none`}

@@ -114,8 +114,23 @@ export default function CareersPage() {
         return
       } catch {}
     }
-    await navigator.clipboard.writeText(url)
-    toast.success("Link copied")
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success("Link copied")
+    } catch {
+      toast.error("Couldn't copy link — copy the URL manually")
+    }
+  }
+
+  const quickApply = (slug: string) => {
+    setActiveRole(slug)
+    // The apply panel mounts on state commit — defer the scroll so the
+    // target exists (double-rAF + timeout fallback for slow frames).
+    const scroll = () => {
+      document.getElementById(`apply-${slug}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+    requestAnimationFrame(() => requestAnimationFrame(scroll))
+    setTimeout(scroll, 120)
   }
 
   return (
@@ -198,7 +213,7 @@ export default function CareersPage() {
                   <MapPin className="w-4 h-4 text-[#AFFF00]" /> HQ: Nairobi, Kenya — Industrial Area
                 </div>
                 <div className="flex items-center gap-3 text-white/60 font-mono text-xs">
-                  <Clock className="w-4 h-4 text-[#AFFF00]" /> Updated {formatPosted(ROLES[0].postedAt)} • 3 roles live
+                  <Clock className="w-4 h-4 text-[#AFFF00]" /> Updated {formatPosted(ROLES.reduce((a, b) => (a.postedAt > b.postedAt ? a : b)).postedAt)} • {ROLES.length} roles live
                 </div>
                 <div className="flex items-center gap-3 text-white/60 font-mono text-xs">
                   <Users className="w-4 h-4 text-[#AFFF00]" /> 83% say they&apos;d recommend GiGi as a workplace
@@ -391,8 +406,7 @@ export default function CareersPage() {
                           href={`#apply-${role.slug}`}
                           onClick={(e) => {
                             e.preventDefault()
-                            setActiveRole(role.slug)
-                            document.getElementById(`apply-${role.slug}`)?.scrollIntoView({ behavior: "smooth", block: "start" })
+                            quickApply(role.slug)
                           }}
                           className="bg-[#AFFF00] text-[#121212] px-4 py-2.5 font-black text-xs inline-flex items-center justify-center gap-1 hover:opacity-90 transition-opacity"
                         >

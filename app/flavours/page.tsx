@@ -37,6 +37,18 @@ function FlavoursContent() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products === undefined &&
+            [0, 1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="bg-white/5 border border-white/10 overflow-hidden animate-pulse" aria-hidden="true">
+                <div className="aspect-square bg-white/5" />
+                <div className="p-6 space-y-3">
+                  <div className="h-5 bg-white/10 w-2/3" />
+                  <div className="h-3 bg-white/5 w-full" />
+                  <div className="h-10 bg-white/5 w-full" />
+                </div>
+              </div>
+            ))}
+          {products !== undefined && <span className="sr-only" role="status">Flavours loaded</span>}
           {flavorProfiles.map((flavor, index) => (
             <motion.div
               key={flavor.slug}

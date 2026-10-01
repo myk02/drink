@@ -257,7 +257,7 @@ function EventsContent() {
     setFormName("")
     setFormEmail("")
     setFormPhone("")
-    openModal(ev)
+    setActiveModal(ev)
   }
 
   const jsonLd = {
@@ -317,10 +317,11 @@ function EventsContent() {
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Search tastings, gyms, area, flavour..."
+                aria-label="Search events"
                 className="w-full bg-white/[0.06] border border-white/10 pl-10 pr-4 py-3.5 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
               />
               {q && (
-                <button onClick={() => setQ("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
+                <button onClick={() => setQ("")} aria-label="Clear search" className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
                   <X className="w-4 h-4" />
                 </button>
               )}
@@ -421,6 +422,7 @@ function EventsContent() {
               <div className="relative">
                 <select
                   value={area}
+                  aria-label="Filter by area"
                   onChange={(e) => setArea(e.target.value as (typeof AREAS)[number])}
                   className="bg-[#121212] border border-white/10 text-white font-mono text-xs pl-3 pr-8 py-2 focus:outline-none focus:border-[#AFFF00] appearance-none"
                 >
@@ -435,6 +437,7 @@ function EventsContent() {
               <div className="relative">
                 <select
                   value={dateFilter}
+                  aria-label="Filter by date"
                   onChange={(e) => setDateFilter(e.target.value as (typeof dateFilters)[number]["value"])}
                   className="bg-[#121212] border border-white/10 text-white font-mono text-xs pl-3 pr-8 py-2 focus:outline-none focus:border-[#AFFF00] appearance-none"
                 >
@@ -449,6 +452,7 @@ function EventsContent() {
               <div className="relative">
                 <select
                   value={sort}
+                  aria-label="Sort events"
                   onChange={(e) => setSort(e.target.value as "soonest" | "popular")}
                   className="bg-[#121212] border border-white/10 text-white font-mono text-xs pl-3 pr-8 py-2 focus:outline-none focus:border-[#AFFF00] appearance-none"
                 >
@@ -461,14 +465,14 @@ function EventsContent() {
                 </select>
                 <ChevronDown className="w-3 h-3 text-white/40 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
-              <div className="flex items-center gap-1 bg-[#121212] border border-white/10 p-1">
-                <button onClick={() => setView("grid")} className={`p-1.5 ${view === "grid" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
+              <div className="flex items-center gap-1 bg-[#121212] border border-white/10 p-1" role="group" aria-label="Change layout">
+                <button onClick={() => setView("grid")} aria-label="Grid view" aria-pressed={view === "grid"} className={`p-1.5 ${view === "grid" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
                   <Grid3X3 className="w-4 h-4" />
                 </button>
-                <button onClick={() => setView("list")} className={`p-1.5 ${view === "list" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
+                <button onClick={() => setView("list")} aria-label="List view" aria-pressed={view === "list"} className={`p-1.5 ${view === "list" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
                   <List className="w-4 h-4" />
                 </button>
-                <button onClick={() => setView("map")} className={`p-1.5 ${view === "map" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
+                <button onClick={() => setView("map")} aria-label="Map view" aria-pressed={view === "map"} className={`p-1.5 ${view === "map" ? "bg-[#AFFF00] text-[#121212]" : "text-white/40 hover:text-white"}`}>
                   <Map className="w-4 h-4" />
                 </button>
               </div>
@@ -619,10 +623,10 @@ function EventsContent() {
                             <span className={`text-[10px] font-mono font-bold uppercase px-2 py-1 ${ev.status === "upcoming" ? "bg-[#AFFF00] text-[#121212]" : ev.status === "ongoing" ? "bg-orange-400 text-[#121212]" : "bg-white/10 text-white/60"}`}>{ev.status}</span>
                           </div>
                           <div className="absolute top-3 right-3 flex gap-2">
-                            <button onClick={() => toggleBookmark(ev._id)} className={`w-8 h-8 flex items-center justify-center ${isBookmarked ? "bg-[#AFFF00] text-[#121212]" : "bg-[#121212]/80 text-white/60 hover:text-[#AFFF00]"}`}>
+                            <button onClick={() => toggleBookmark(ev._id)} aria-label={isBookmarked ? `Remove ${ev.title} from saved` : `Save ${ev.title}`} aria-pressed={isBookmarked} className={`w-8 h-8 flex items-center justify-center ${isBookmarked ? "bg-[#AFFF00] text-[#121212]" : "bg-[#121212]/80 text-white/60 hover:text-[#AFFF00]"}`}>
                               {isBookmarked ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
                             </button>
-                            <button onClick={() => share(ev)} className="w-8 h-8 bg-[#121212]/80 text-white/60 hover:text-white flex items-center justify-center">
+                            <button onClick={() => share(ev)} aria-label={`Share ${ev.title}`} className="w-8 h-8 bg-[#121212]/80 text-white/60 hover:text-white flex items-center justify-center">
                               <Share2 className="w-4 h-4" />
                             </button>
                           </div>
@@ -650,7 +654,7 @@ function EventsContent() {
                             ) : (
                               <button onClick={() => openModal(ev)} className="flex-1 bg-[#AFFF00] text-[#121212] font-black text-xs py-2.5 hover:opacity-90">Register free</button>
                             )}
-                            <a href={googleCalendarUrl(ev)} target="_blank" className="px-3 py-2.5 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] hover:border-[#AFFF00]/30 flex items-center justify-center">
+                            <a href={googleCalendarUrl(ev)} target="_blank" aria-label={`Add ${ev.title} to Google Calendar`} className="px-3 py-2.5 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] hover:border-[#AFFF00]/30 flex items-center justify-center">
                               <CalendarPlus className="w-4 h-4" />
                             </a>
                           </div>
@@ -669,8 +673,8 @@ function EventsContent() {
                           <p className="text-white/40 font-mono text-xs flex items-center gap-2 mt-1"><MapPin className="w-3 h-3" /> {ev.location} • {ev.time}</p>
                           <div className="mt-2 flex items-center gap-2">
                             {isRegistered ? <span className="text-[#AFFF00] font-mono text-xs">✓ Registered</span> : full ? <span className="text-white/30 font-mono text-xs">Full</span> : <button onClick={() => openModal(ev)} className="text-[#AFFF00] font-mono text-xs hover:underline">Register →</button>}
-                            <button onClick={() => toggleBookmark(ev._id)} className="ml-auto text-white/30 hover:text-[#AFFF00]"><Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-[#AFFF00] text-[#AFFF00]" : ""}`} /></button>
-                            <button onClick={() => share(ev)} className="text-white/30 hover:text-white"><Share2 className="w-4 h-4" /></button>
+                            <button onClick={() => toggleBookmark(ev._id)} aria-label={isBookmarked ? `Remove ${ev.title} from saved` : `Save ${ev.title}`} aria-pressed={isBookmarked} className="ml-auto text-white/30 hover:text-[#AFFF00]"><Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-[#AFFF00] text-[#AFFF00]" : ""}`} /></button>
+                            <button onClick={() => share(ev)} aria-label={`Share ${ev.title}`} className="text-white/30 hover:text-white"><Share2 className="w-4 h-4" /></button>
                           </div>
                         </div>
                       </div>
@@ -788,9 +792,9 @@ function EventsContent() {
                 <p className="flex items-center gap-2"><Users className="w-3 h-3" /> {activeModal.registered}/{activeModal.capacity} • {activeModal.capacity - activeModal.registered} left</p>
               </div>
               <div className="mt-6 space-y-3">
-                <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Full Name *" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
-                <input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Email *" type="email" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
-                <input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="Phone (optional)" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+                <input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Full Name *" autoComplete="name" aria-label="Full name" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+                <input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="Email *" type="email" autoComplete="email" aria-label="Email address" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+                <input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="Phone (optional)" type="tel" autoComplete="tel" inputMode="tel" aria-label="Phone number (optional)" className="w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
                 <button onClick={() => handleRegister(activeModal)} disabled={isSubmitting} className="w-full bg-[#AFFF00] text-[#121212] font-black py-3 hover:opacity-90 disabled:opacity-60">
                   {isSubmitting ? "Registering..." : "Confirm free registration"}
                 </button>
@@ -798,7 +802,7 @@ function EventsContent() {
                   <a href={googleCalendarUrl(activeModal)} target="_blank" className="flex-1 text-center border border-white/10 text-white/60 font-mono text-xs py-2.5 hover:text-[#AFFF00] hover:border-[#AFFF00]/30">
                     Add to calendar
                   </a>
-                  <button onClick={() => share(activeModal)} className="flex-1 border border-white/10 text-white/60 font-mono text-xs py-2.5 hover:text-white">Share</button>
+                  <button onClick={() => share(activeModal)} aria-label={`Share ${activeModal.title}`} className="flex-1 border border-white/10 text-white/60 font-mono text-xs py-2.5 hover:text-white">Share</button>
                 </div>
                 <p className="text-white/20 font-mono text-[11px] text-center">QR sent to email • 25% off code after check-in</p>
               </div>

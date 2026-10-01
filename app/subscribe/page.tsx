@@ -71,8 +71,18 @@ function SubscribeContent() {
     <>
       <div className="grid md:grid-cols-2 gap-6 mb-12">
         {!sorted && (
-          <div className="col-span-2 flex items-center justify-center py-16">
+          <div className="col-span-2 flex items-center justify-center py-16" role="status" aria-label="Loading membership plans">
             <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+            <span className="sr-only">Loading membership plans…</span>
+          </div>
+        )}
+        {sorted && sorted.length === 0 && (
+          <div className="col-span-2 text-center py-16 bg-white/5 border border-white/10">
+            <p className="text-white font-bold">Memberships aren&apos;t available right now</p>
+            <p className="text-white/40 font-mono text-sm mt-1">Please check back soon or contact us for help.</p>
+            <Link href="/contact" className="inline-block mt-6 bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
+              Contact Us
+            </Link>
           </div>
         )}
         {sorted?.map((plan, i) => {
@@ -127,10 +137,13 @@ function SubscribeContent() {
 
           <h2 className="font-mono text-[#AFFF00] text-xs tracking-widest mb-4">YOUR DETAILS</h2>
           <div className="space-y-3">
-            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Name (optional)" disabled={isSubmitting} className={inputClass} />
-            <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email Address *" disabled={isSubmitting} className={inputClass} />
-            <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number (for M-Pesa renewals)" disabled={isSubmitting} className={inputClass} />
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Name (optional)" autoComplete="name" aria-label="Your name (optional)" disabled={isSubmitting} className={inputClass} />
+            <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email Address *" autoComplete="email" aria-label="Email address" disabled={isSubmitting} className={inputClass} />
+            <input type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone number (for M-Pesa renewals)" autoComplete="tel" inputMode="tel" aria-label="Phone number (for M-Pesa renewals)" disabled={isSubmitting} className={inputClass} />
           </div>
+          {!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()) && (
+            <p className="text-white/40 font-mono text-[11px] mt-2">Enter a valid email to continue</p>
+          )}
 
           <button
             onClick={() => void handleSubscribe()}

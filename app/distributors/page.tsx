@@ -331,7 +331,7 @@ Learn more: ${SITE_URL}/distributors`
     a.download = "GiGi-Trade-Deck-2026.txt"
     a.click()
     URL.revokeObjectURL(url)
-    toast.success("Trade deck downloaded — full PDF coming soon. Check your downloads.")
+    toast.success("Trade one-pager downloaded (.txt) — full designed PDF coming soon. Check your downloads.")
   }
 
   return (
@@ -521,14 +521,16 @@ Learn more: ${SITE_URL}/distributors`
               <div className="space-y-5">
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-white/60 font-mono text-xs">Cases per week</label>
-                    <span className="bg-[#121212] border border-white/10 text-[#AFFF00] font-black text-sm px-2 py-1">{casesPerWeek} cases</span>
+                    <label htmlFor="calc-cases" className="text-white/60 font-mono text-xs">Cases per week</label>
+                    <span className="bg-[#121212] border border-white/10 text-[#AFFF00] font-black text-sm px-2 py-1" aria-live="polite">{casesPerWeek} cases</span>
                   </div>
                   <input
+                    id="calc-cases"
                     type="range"
                     min={1}
                     max={50}
                     value={casesPerWeek}
+                    aria-label="Cases per week"
                     onChange={(e) => setCasesPerWeek(parseInt(e.target.value))}
                     className="w-full accent-[#AFFF00]"
                   />
@@ -539,15 +541,17 @@ Learn more: ${SITE_URL}/distributors`
                 </div>
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="text-white/60 font-mono text-xs">Your retail price (KSh)</label>
-                    <span className="bg-[#121212] border border-white/10 text-white font-mono text-sm px-2 py-1">KSh {retailPrice}</span>
+                    <label htmlFor="calc-retail" className="text-white/60 font-mono text-xs">Your retail price (KSh)</label>
+                    <span className="bg-[#121212] border border-white/10 text-white font-mono text-sm px-2 py-1" aria-live="polite">KSh {retailPrice}</span>
                   </div>
                   <input
+                    id="calc-retail"
                     type="range"
                     min={120}
                     max={200}
                     step={5}
                     value={retailPrice}
+                    aria-label="Your retail price in shillings"
                     onChange={(e) => setRetailPrice(parseInt(e.target.value))}
                     className="w-full accent-[#AFFF00]"
                   />
@@ -627,28 +631,28 @@ Learn more: ${SITE_URL}/distributors`
             <h2 className="text-2xl font-black text-white tracking-tight">COVERAGE & LOGISTICS</h2>
             <p className="text-white/40 font-mono text-xs mt-2">Cold-chain, zone pricing, no surprises.</p>
             <div className="mt-6 bg-white/5 border border-white/10 overflow-hidden">
-              <div className="grid grid-cols-3 gap-0 bg-[#121212] border-b border-white/10 p-3 font-mono text-[11px] text-white/40">
+              <div className="grid grid-cols-3 gap-0 bg-[#121212] border-b border-white/10 p-2 sm:p-3 font-mono text-[11px] text-white/40">
                 <span>Zone</span>
                 <span>Delivery fee</span>
                 <span>Restock SLA</span>
               </div>
               {coverage.map((c) => (
-                <div key={c.zone} className="grid grid-cols-3 gap-0 p-3 border-b border-white/5 last:border-0 font-mono text-xs">
-                  <span className="text-white/80 flex items-center gap-2">
-                    <MapPin className="w-3 h-3 text-[#AFFF00]" /> {c.zone}
+                <div key={c.zone} className="grid grid-cols-3 gap-0 p-2 sm:p-3 border-b border-white/5 last:border-0 font-mono text-xs">
+                  <span className="text-white/80 flex items-center gap-1.5 min-w-0 break-words">
+                    <MapPin className="w-3 h-3 text-[#AFFF00] shrink-0" /> {c.zone}
                   </span>
                   <span className="text-white/60">KSh {c.fee}</span>
                   <span className="text-[#AFFF00]">{c.sla}</span>
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-3 gap-3 mt-4">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4">
               {[
                 { icon: Thermometer, title: "Cold chain", desc: "Refrigerated trunk, tracer" },
                 { icon: FileText, title: "Invoice", desc: "VAT compliant, instant" },
                 { icon: Truck, title: "Mixed pallets", desc: "Flavours split free" },
               ].map((x) => (
-                <div key={x.title} className="bg-[#AFFF00] p-4">
+                <div key={x.title} className="bg-[#AFFF00] p-3 sm:p-4">
                   <x.icon className="w-5 h-5 text-[#121212] mb-2" />
                   <p className="text-[#121212] font-black text-xs">{x.title}</p>
                   <p className="text-[#121212]/60 font-mono text-[11px]">{x.desc}</p>
@@ -688,16 +692,16 @@ Learn more: ${SITE_URL}/distributors`
         <div className="mb-14">
           <h2 className="text-2xl font-black text-white tracking-tight mb-6">WHY GIGI vs IMPORTS</h2>
           <div className="bg-white/5 border border-white/10 overflow-hidden">
-            <div className="grid grid-cols-3 gap-0 bg-[#121212] border-b border-white/10 p-4 font-mono text-xs">
+            <div className="grid grid-cols-3 gap-0 bg-[#121212] border-b border-white/10 p-2.5 sm:p-4 font-mono text-xs">
               <span className="text-white/40">Feature</span>
               <span className="text-[#AFFF00] font-black">GiGi</span>
               <span className="text-white/40">Typical import</span>
             </div>
             {comparison.map((c) => (
-              <div key={c.label} className="grid grid-cols-3 gap-0 p-4 border-b border-white/5 last:border-0 font-mono text-sm">
-                <span className="text-white/50 text-xs">{c.label}</span>
-                <span className="text-white font-bold">{c.gigi}</span>
-                <span className="text-white/30">{c.other}</span>
+              <div key={c.label} className="grid grid-cols-3 gap-0 p-2.5 sm:p-4 border-b border-white/5 last:border-0 font-mono text-sm">
+                <span className="text-white/50 text-xs min-w-0 break-words">{c.label}</span>
+                <span className="text-white font-bold text-xs sm:text-sm min-w-0 break-words">{c.gigi}</span>
+                <span className="text-white/30 text-xs sm:text-sm min-w-0 break-words">{c.other}</span>
               </div>
             ))}
           </div>
@@ -793,22 +797,26 @@ Learn more: ${SITE_URL}/distributors`
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white/60 font-mono text-xs mb-1.5 block">Contact name *</label>
+                  <label htmlFor="dist-name" className="text-white/60 font-mono text-xs mb-1.5 block">Contact name *</label>
                   <input
+                    id="dist-name"
                     required
                     value={form.contactName}
                     onChange={(e) => setForm({ ...form, contactName: e.target.value })}
                     placeholder="Your full name"
+                    autoComplete="name"
                     className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
                   />
                 </div>
                 <div>
-                  <label className="text-white/60 font-mono text-xs mb-1.5 block">Business / outlet name *</label>
+                  <label htmlFor="dist-business" className="text-white/60 font-mono text-xs mb-1.5 block">Business / outlet name *</label>
                   <input
+                    id="dist-business"
                     required
                     value={form.businessName}
                     onChange={(e) => setForm({ ...form, businessName: e.target.value })}
                     placeholder="e.g. QuickMeds Westlands"
+                    autoComplete="organization"
                     className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
                   />
                 </div>
@@ -847,12 +855,14 @@ Learn more: ${SITE_URL}/distributors`
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white/60 font-mono text-xs mb-1.5 block">Specific location *</label>
+                  <label htmlFor="dist-location" className="text-white/60 font-mono text-xs mb-1.5 block">Specific location *</label>
                   <input
+                    id="dist-location"
                     required
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
                     placeholder="Estate / street / building"
+                    autoComplete="street-address"
                     className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
                   />
                 </div>
@@ -897,24 +907,29 @@ Learn more: ${SITE_URL}/distributors`
 
               <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-white/60 font-mono text-xs mb-1.5 block">Email *</label>
+                  <label htmlFor="dist-email" className="text-white/60 font-mono text-xs mb-1.5 block">Email *</label>
                   <input
+                    id="dist-email"
                     required
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
                     placeholder="you@business.co.ke"
+                    autoComplete="email"
                     className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
                   />
                 </div>
                 <div>
-                  <label className="text-white/60 font-mono text-xs mb-1.5 block">Phone (M-Pesa) *</label>
+                  <label htmlFor="dist-phone" className="text-white/60 font-mono text-xs mb-1.5 block">Phone (M-Pesa) *</label>
                   <input
+                    id="dist-phone"
                     required
                     type="tel"
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value })}
                     placeholder="07xx xxx xxx"
+                    autoComplete="tel"
+                    inputMode="tel"
                     className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
                   />
                 </div>

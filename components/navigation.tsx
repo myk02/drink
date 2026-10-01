@@ -146,7 +146,7 @@ export function Navigation() {
           ))}
           <button
             onClick={cart.openCart}
-            className="relative p-2 cursor-pointer"
+            className="relative p-3 -m-1 cursor-pointer"
             aria-label={`Open cart${cart.totalCount > 0 ? ` (${cart.totalCount} items)` : ""}`}
           >
             <ShoppingCart className={scrolled || !isHome ? "text-white/80 hover:text-[#AFFF00]" : "text-[#121212]/80"} />
@@ -190,7 +190,7 @@ export function Navigation() {
         <div className="md:hidden flex items-center gap-1">
           <button
             onClick={cart.openCart}
-            className="relative p-2 cursor-pointer"
+            className="relative p-3 -m-1 cursor-pointer"
             aria-label={`Open cart${cart.totalCount > 0 ? ` (${cart.totalCount} items)` : ""}`}
           >
             <ShoppingCart className={scrolled || !isHome ? "text-white/80" : "text-[#121212]/80"} />

@@ -118,6 +118,7 @@ function SuccessContent() {
             <input
               type="email"
               required
+              aria-label="Email used at checkout"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="you@example.com"
@@ -131,8 +132,9 @@ function SuccessContent() {
       )
     }
     return (
-      <div className="flex items-center justify-center py-16">
+      <div className="flex items-center justify-center py-16" role="status" aria-label="Loading order">
         <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+        <span className="sr-only">Loading your order…</span>
       </div>
     )
   }

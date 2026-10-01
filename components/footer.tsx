@@ -35,6 +35,7 @@ export function Footer() {
   const [email, setEmail] = useState("")
   const [isHovering, setIsHovering] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [justSubscribed, setJustSubscribed] = useState(false)
   const footerRef = useRef(null)
   const isInView = useInView(footerRef, { once: true, margin: "-100px" })
   const subscribe = useMutation(api.newsletter.subscribe)
@@ -50,6 +51,7 @@ export function Footer() {
         toast.success("You're in! Welcome to the GiGi crew.")
       }
       setEmail("")
+      setJustSubscribed(true)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong. Try again.")
     } finally {
@@ -143,7 +145,7 @@ export function Footer() {
               void handleSubmit()
             }}
           >
-            <motion.div className="flex-1 relative" whileFocus={{ scale: 1.02 }}>
+            <motion.div className="flex-1 relative">
               <motion.input
                 type="email"
                 required
@@ -190,8 +192,9 @@ export function Footer() {
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.4 }}
+            aria-live="polite"
           >
-            Join 50k+ dreamers. No spam, just energy.
+            {justSubscribed ? "✓ You're on the list — check your inbox for 25% off." : "Join 50k+ dreamers. No spam, just energy."}
           </motion.p>
         </motion.div>
 
@@ -281,6 +284,7 @@ export function Footer() {
 
       <motion.div
         className="absolute bottom-0 left-1/2 -translate-x-1/2 text-[15rem] md:text-[30rem] font-black text-white/[0.02] pointer-events-none select-none leading-none"
+        aria-hidden="true"
         initial={{ y: 100, opacity: 0 }}
         whileInView={{ y: 0, opacity: 1 }}
         viewport={{ once: true }}

@@ -169,9 +169,15 @@ function parseEventTime(dateStr: string, timeStr: string): Date {
 
 export function googleCalendarUrl(ev: GiGiEvent) {
   const start = parseEventTime(ev.date, ev.time)
-  // End time: use the event's own end time when parseable, otherwise 2h after start
-  const endMatch = ev.time.match(/–\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i)
-  const endDate = endMatch ? parseEventTime(ev.date, endMatch[1]) : new Date(start.getTime() + 2 * 3600000)
+  // End time: use the event's own end time when parseable, otherwise 2h after start.
+  // Accepts both en-dash (–) and hyphen (-) separators.
+  const endMatch = ev.time.match(/[–-]\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i)
+  let endDate = endMatch ? parseEventTime(ev.date, endMatch[1]) : new Date(start.getTime() + 2 * 3600000)
+  // Overnight events (e.g. "6:00 PM – 1:00 AM") parse the end earlier than the
+  // start on the same date — roll the end to the next day.
+  if (endDate.getTime() <= start.getTime()) {
+    endDate = new Date(endDate.getTime() + 24 * 3600000)
+  }
   const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
   const details = `${ev.description} — ${ev.location}`
   return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${fmt(start)}/${fmt(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(ev.location)}`

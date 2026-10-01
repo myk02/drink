@@ -141,12 +141,19 @@ function ShopSlugInner() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       {/* Sticky mobile ATC – Baymard best practice */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#121212]/95 backdrop-blur border-t border-white/10 p-3 flex items-center gap-3 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#121212]/95 backdrop-blur border-t border-white/10 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex items-center gap-3 md:hidden">
         <span className="flex-1">
           <span className="text-white font-black text-sm">{formatKes(product.priceKes)}</span>
-          <span className="text-white/40 font-mono text-xs ml-2">{product.canCount} cans</span>
+          <span className="text-white/60 font-mono text-xs ml-2">{product.canCount} cans</span>
         </span>
-        <button onClick={() => handleAdd(false)} className="bg-[#AFFF00] text-[#121212] px-5 py-2.5 font-black text-sm cursor-pointer">Add to cart</button>
+        <button
+          onClick={() => handleAdd(false)}
+          disabled={stock.tone === "out"}
+          aria-live="polite"
+          className="bg-[#AFFF00] text-[#121212] px-5 py-2.5 font-black text-sm cursor-pointer disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed"
+        >
+          {stock.tone === "out" ? "Out of stock" : "Add to cart"}
+        </button>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10 md:py-12 pb-24 md:pb-12">
@@ -192,7 +199,7 @@ function ShopSlugInner() {
               </div>
               <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter mt-3 leading-[0.95]">{product.name}</h1>
               <p className="text-white/50 font-mono text-sm mt-3 leading-relaxed max-w-xl">{product.description}</p>
-              <p className="text-white/30 font-mono text-xs mt-2">Zero sugar · 75 mg natural caffeine · Natural flavours · Made in Nairobi</p>
+              <p className="text-white/60 font-mono text-xs mt-2">Zero sugar · 75 mg natural caffeine · Natural flavours · Made in Nairobi</p>
             </div>
 
             {/* Rating + stock */}
@@ -209,7 +216,7 @@ function ShopSlugInner() {
               >
                 <Heart className={`w-3.5 h-3.5 ${wishlist.isWishlisted(product._id) ? "fill-[#121212]" : ""}`} /> {wishlist.isWishlisted(product._id) ? "Wishlisted" : "Wishlist"}
               </button>
-              <button
+                <button
                 onClick={async () => {
                   try {
                     const url = `${typeof window !== "undefined" ? window.location.origin : SITE_URL}/shop/${product.slug}`
@@ -220,6 +227,7 @@ function ShopSlugInner() {
                     toast.error("Couldn't copy link — long-press the URL to copy it")
                   }
                 }}
+                aria-live="polite"
                 className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] px-3 py-1.5 font-mono text-xs cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" /> {showShareCopied ? "Copied!" : "Share"}
@@ -236,9 +244,19 @@ function ShopSlugInner() {
               <p className="text-white/40 font-mono text-xs mt-1">{formatKes(perCan)} per can · {product.compareAtKes ? `Save ${formatKes(product.compareAtKes - product.priceKes)} vs regular` : "VAT included"} · Free delivery over KSh 3,000</p>
               <div className="mt-4 flex items-center gap-3">
                 <div className="flex items-center gap-2 bg-[#121212] border border-white/10 px-2 py-1.5">
-                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-1 text-white/60 hover:text-[#AFFF00] cursor-pointer" aria-label="Decrease"><Minus className="w-4 h-4" /></button>
-                  <span className="text-white font-mono text-sm w-8 text-center">{qty}</span>
-                  <button onClick={() => setQty((q) => Math.min(20, q + 1))} className="p-1 text-white/60 hover:text-[#AFFF00] cursor-pointer" aria-label="Increase"><Plus className="w-4 h-4" /></button>
+                  <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="p-1 text-white/60 hover:text-[#AFFF00] cursor-pointer" aria-label={`Decrease quantity of ${product.name}`}><Minus className="w-4 h-4" /></button>
+                  <span className="text-white font-mono text-sm w-8 text-center" aria-live="polite">{qty}</span>
+                  <button
+                    onClick={() => {
+                      if (qty >= 20) {
+                        toast.info("Max 20 per item")
+                        return
+                      }
+                      setQty((q) => Math.min(20, q + 1))
+                    }}
+                    className="p-1 text-white/60 hover:text-[#AFFF00] cursor-pointer"
+                    aria-label={`Increase quantity of ${product.name}`}
+                  ><Plus className="w-4 h-4" /></button>
                 </div>
                 <span className="text-white/30 font-mono text-xs">{qty * product.canCount} cans • {formatKes(product.priceKes * qty)} total</span>
               </div>
@@ -256,7 +274,7 @@ function ShopSlugInner() {
             </div>
 
             {/* Trust trio */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
               {[
                 { icon: Truck, title: "1–2 day", desc: "Nairobi zones" },
                 { icon: Zap, title: "Fresh", desc: "Sealed batch" },

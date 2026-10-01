@@ -82,12 +82,14 @@ function SupportWidget() {
         ))}
       </div>
       <input
-        type="number"
-        min={50}
-        max={500000}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        minLength={1}
         value={customAmount}
-        onChange={(e) => setCustomAmount(e.target.value)}
+        onChange={(e) => setCustomAmount(e.target.value.replace(/[^0-9]/g, ""))}
         placeholder="Custom amount (KSh)"
+        aria-label="Custom amount in Kenyan shillings"
         disabled={isSubmitting}
         className={`${inputClass} mb-4`}
       />
@@ -99,6 +101,8 @@ function SupportWidget() {
           value={form.email}
           onChange={(e) => setForm({ ...form, email: e.target.value })}
           placeholder="Email Address *"
+          aria-label="Email address"
+          autoComplete="email"
           disabled={isSubmitting}
           className={inputClass}
         />
@@ -107,6 +111,8 @@ function SupportWidget() {
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             placeholder="Your name (shows on the wall)"
+            aria-label="Your name (shows on the supporters wall)"
+            autoComplete="name"
             disabled={isSubmitting}
             className={inputClass}
           />
@@ -115,6 +121,7 @@ function SupportWidget() {
           value={form.message}
           onChange={(e) => setForm({ ...form, message: e.target.value })}
           placeholder="Say something to the team (optional)"
+          aria-label="Message to the team (optional)"
           rows={2}
           disabled={isSubmitting}
           className={`${inputClass} resize-none`}
@@ -146,14 +153,26 @@ function SupportWidget() {
 function SupportersWall() {
   const wall = useQuery(api.donations.getWall)
 
-  if (wall !== undefined && wall.length === 0) {
+  if (!wall) {
+    return (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto mt-8" role="status" aria-label="Loading supporters">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="bg-white/5 border border-white/10 p-5 animate-pulse">
+            <div className="h-4 bg-white/10 mb-3 w-2/3" />
+            <div className="h-3 bg-white/5 w-full" />
+          </div>
+        ))}
+        <span className="sr-only">Loading supporters…</span>
+      </div>
+    )
+  }
+  if (wall.length === 0) {
     return (
       <p className="text-white/30 font-mono text-sm text-center py-8">
         Be the first on the wall — the team reads every message.
       </p>
     )
   }
-  if (!wall) return null
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto mt-8">

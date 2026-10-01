@@ -86,6 +86,16 @@ function GymsContent() {
           </div>
         )}
 
+        {gyms && gyms.length > 0 && filtered?.length === 0 && (
+          <div className="text-center py-16 bg-white/5 border border-white/10">
+            <p className="text-white font-bold">No gyms in this area yet</p>
+            <p className="text-white/40 font-mono text-sm mt-1">Try another area or browse them all.</p>
+            <button onClick={() => setActiveArea(null)} className="mt-4 text-[#AFFF00] font-mono text-sm hover:underline cursor-pointer">
+              Show all areas →
+            </button>
+          </div>
+        )}
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered?.map((gym: Gym, index: number) => (
             <motion.div

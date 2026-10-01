@@ -80,7 +80,7 @@ export function FlavorCarousel() {
   }
 
   return (
-    <section id="flavours" className="relative py-16 bg-white overflow-hidden">
+    <section id="flavours" className="relative py-16 bg-white overflow-hidden scroll-mt-20">
       <motion.div
         className="absolute inset-0"
         style={{
@@ -292,6 +292,8 @@ export function FlavorCarousel() {
                   setCurrentIndex(index)
                   setPage([index, newDirection])
                 }}
+                aria-label={`Go to ${flavor.name}`}
+                aria-current={index === currentIndex}
                 className="h-2 rounded-full transition-all"
                 style={{
                   backgroundColor: index === currentIndex ? flavor.accent : "#12121220",

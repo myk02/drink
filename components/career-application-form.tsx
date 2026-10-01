@@ -221,6 +221,7 @@ function CareerFormInner({
             placeholder="+254 7... "
             disabled={isSubmitting}
             autoComplete="tel"
+            inputMode="tel"
             className={inputClass}
           />
         </div>
@@ -232,6 +233,7 @@ function CareerFormInner({
             onChange={(e) => setLinkedInUrl(e.target.value)}
             placeholder="https://linkedin.com/in/..."
             disabled={isSubmitting}
+            inputMode="url"
             className={inputClass}
           />
         </div>
@@ -239,20 +241,22 @@ function CareerFormInner({
 
       <div>
         <label className="text-white/60 font-mono text-xs mb-1.5 block">Portfolio / work link <span className="text-white/30">(optional but recommended)</span></label>
-        <input
-          type="url"
-          value={portfolioUrl}
-          onChange={(e) => setPortfolioUrl(e.target.value)}
-          placeholder="https://... (TikTok, Behance, GitHub, Drive)"
-          disabled={isSubmitting}
-          className={inputClass}
-        />
+          <input
+            type="url"
+            value={portfolioUrl}
+            onChange={(e) => setPortfolioUrl(e.target.value)}
+            placeholder="https://... (TikTok, Behance, GitHub, Drive)"
+            disabled={isSubmitting}
+            inputMode="url"
+            className={inputClass}
+          />
       </div>
 
       <div>
         <label className="text-white/60 font-mono text-xs mb-1.5 block">Tell us about you * <span className="text-white/30">— why GiGi, biggest win, links to work</span></label>
         <textarea
           required
+          minLength={20}
           value={coverLetter}
           onChange={(e) => setCoverLetter(e.target.value)}
           placeholder={selectedRole?.department === "Brand" ? "Which role? Paste 2–3 links to reels/TikToks you made, your favourite GiGi flavour idea, why you..." : "Which role? 3–4 sentences: why this role, your most relevant win, availability..."}
@@ -260,7 +264,7 @@ function CareerFormInner({
           disabled={isSubmitting}
           className={`${inputClass} resize-none`}
         />
-        <p className="text-white/30 font-mono text-[11px] mt-1">{coverLetter.length}/20 min • Keep it concise, links {" > "} paragraphs</p>
+        <p className="text-white/30 font-mono text-[11px] mt-1">{coverLetter.length}/20 chars min • Keep it concise, links {" > "} paragraphs</p>
       </div>
 
       {/* Resume upload */}

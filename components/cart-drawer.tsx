@@ -114,7 +114,7 @@ export function CartDrawer() {
                               <button
                                 onClick={() => setQuantity(item.productId, item.quantity - 1)}
                                 className="text-white/60 hover:text-[#AFFF00] transition-colors cursor-pointer p-1"
-                                aria-label="Decrease quantity"
+                                aria-label={`Decrease quantity of ${item.name}`}
                               >
                                 <Minus className="w-3.5 h-3.5" />
                               </button>
@@ -128,7 +128,7 @@ export function CartDrawer() {
                                   setQuantity(item.productId, item.quantity + 1)
                                 }}
                                 className="text-white/60 hover:text-[#AFFF00] transition-colors cursor-pointer p-1"
-                                aria-label="Increase quantity"
+                                aria-label={`Increase quantity of ${item.name}`}
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>

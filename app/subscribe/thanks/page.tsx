@@ -64,7 +64,7 @@ function ThanksContent() {
             Enter the email you used to join so we can check your membership status.
           </p>
           <form
-            className="flex gap-2 justify-center mt-6"
+            className="flex flex-col sm:flex-row gap-2 justify-center mt-6"
             onSubmit={(e) => {
               e.preventDefault()
               const v = emailInput.trim().toLowerCase()
@@ -74,6 +74,7 @@ function ThanksContent() {
             <input
               type="email"
               required
+              aria-label="Email used to join"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="you@example.com"

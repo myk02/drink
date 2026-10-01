@@ -8,8 +8,23 @@ export function CopyLinkButton({ url, label = "Copy link" }: { url: string; labe
     try {
       await navigator.clipboard.writeText(url)
       toast.success("Link copied")
+      return
     } catch {
-      toast.error("Could not copy")
+      // Clipboard API unavailable (insecure context / denied) — legacy fallback.
+    }
+    try {
+      const ta = document.createElement("textarea")
+      ta.value = url
+      ta.setAttribute("readonly", "")
+      ta.style.position = "fixed"
+      ta.style.opacity = "0"
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand("copy")
+      document.body.removeChild(ta)
+      toast.success("Link copied")
+    } catch {
+      toast.error("Couldn't copy — long-press the URL to copy it")
     }
   }
   return (

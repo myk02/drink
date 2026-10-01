@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
 import { ArrowLeft, ShoppingBag, Search, SlidersHorizontal, X, Star, Heart, Eye, Truck, ShieldCheck, Zap } from "lucide-react"
+import { toast } from "sonner"
 import { ClientOnly } from "@/components/client-only"
 import { AddToCartButton } from "@/components/cart-drawer"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -212,8 +213,8 @@ function ShopContent() {
           >
             <SlidersHorizontal className="w-4 h-4" /> Filter{activeCount ? ` (${activeCount})` : ""}
           </button>
-          <div className="hidden md:flex items-center gap-2 text-white/40 font-mono text-xs">
-            <span>{filtered ? `${filtered.length} products` : "—"}</span>
+          <div className="hidden md:flex items-center gap-2 text-white/60 font-mono text-xs">
+            <span aria-live="polite">{filtered ? `${filtered.length} products` : "—"}</span>
             {activeCount > 0 && (
               <button onClick={() => { setTypeFilter("all"); setCanFilter("all"); setSaleOnly(false); setQ("") }} className="text-[#AFFF00] hover:underline ml-2 cursor-pointer">
                 Clear all
@@ -275,31 +276,32 @@ function ShopContent() {
                 {typeFilter !== "all" && (
                   <span className="inline-flex items-center gap-1 bg-[#AFFF00] text-[#121212] font-mono text-xs px-2 py-1">
                     {FILTER_TYPES.find((f) => f.value === typeFilter)?.label}
-                    <button onClick={() => setTypeFilter("all")} className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setTypeFilter("all")} aria-label="Remove type filter" className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {canFilter !== "all" && (
                   <span className="inline-flex items-center gap-1 bg-[#AFFF00] text-[#121212] font-mono text-xs px-2 py-1">
                     {CAN_FILTERS.find((f) => f.value === canFilter)?.label}
-                    <button onClick={() => setCanFilter("all")} className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
+                    <button onClick={() => setCanFilter("all")} aria-label="Remove size filter" className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {saleOnly && (
                   <span className="inline-flex items-center gap-1 bg-[#AFFF00] text-[#121212] font-mono text-xs px-2 py-1">
-                    On sale <button onClick={() => setSaleOnly(false)} className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
+                    On sale <button onClick={() => setSaleOnly(false)} aria-label="Remove sale filter" className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
                 {q && (
                   <span className="inline-flex items-center gap-1 bg-white/10 border border-white/10 text-white font-mono text-xs px-2 py-1">
-                    “{q}” <button onClick={() => setQ("")} className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
+                    “{q}” <button onClick={() => setQ("")} aria-label="Clear search" className="ml-1 cursor-pointer"><X className="w-3 h-3" /></button>
                   </span>
                 )}
               </div>
             )}
 
             {!filtered && (
-              <div className="flex items-center justify-center py-20">
+              <div className="flex items-center justify-center py-20" role="status" aria-label="Loading products">
                 <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
+                <span className="sr-only">Loading products…</span>
               </div>
             )}
 
@@ -532,7 +534,7 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
           </button>
         </div>
         <button
-          onClick={(e) => { e.preventDefault(); toggle(product._id) }}
+          onClick={(e) => { e.preventDefault(); const was = isWishlisted(product._id); toggle(product._id); toast.success(was ? "Removed from wishlist" : "Added to wishlist") }}
           className={`absolute top-3 right-3 mt-8 w-8 h-8 flex items-center justify-center border transition-colors cursor-pointer ${wished ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]" : "bg-white/5 text-white/60 border-white/10 hover:text-[#AFFF00] hover:border-[#AFFF00]/30"}`}
           aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
           title={wished ? "Wishlisted" : "Wishlist"}
@@ -563,7 +565,7 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
           {product.compareAtKes && <span className="text-white/30 font-mono text-xs line-through">{formatKes(product.compareAtKes)}</span>}
           {product.compareAtKes && <span className="text-[#AFFF00] font-mono text-xs">Save {formatKes(product.compareAtKes - product.priceKes)}</span>}
         </div>
-        <p className="text-white/30 font-mono text-[11px] mt-1">Free delivery over {formatKes(FREE_DELIVERY_THRESHOLD_KES)} • 1–2 day Nairobi</p>
+        <p className="text-white/60 font-mono text-[11px] mt-1">Free delivery over {formatKes(FREE_DELIVERY_THRESHOLD_KES)} • 1–2 day Nairobi</p>
 
         <div className="mt-4 flex gap-2">
           <div className="flex-1">
@@ -573,12 +575,12 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
               disabled={stock.tone === "out"}
             />
           </div>
-          <button onClick={onQuick} className="md:hidden px-3 py-3 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] hover:border-[#AFFF00]/30 cursor-pointer" aria-label="Quick view">
+          <button onClick={onQuick} className="md:hidden px-3 py-3 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] hover:border-[#AFFF00]/30 cursor-pointer" aria-label={`Quick view ${product.name}`}>
             <Eye className="w-4 h-4" />
           </button>
         </div>
         {/* Per-unit price */}
-        <p className="text-white/20 font-mono text-[11px] mt-2 text-center">{formatKes(Math.round(product.priceKes / product.canCount))} / can</p>
+        <p className="text-white/40 font-mono text-[11px] mt-2 text-center">{formatKes(Math.round(product.priceKes / product.canCount))} / can</p>
       </div>
     </motion.div>
   )
