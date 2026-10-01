@@ -39,18 +39,6 @@ function FlavoursContent() {
         </motion.div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products === undefined &&
-            [0, 1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="bg-white/5 border border-white/10 overflow-hidden animate-pulse" aria-hidden="true">
-                <div className="aspect-square bg-white/5" />
-                <div className="p-6 space-y-3">
-                  <div className="h-5 bg-white/10 w-2/3" />
-                  <div className="h-3 bg-white/5 w-full" />
-                  <div className="h-10 bg-white/5 w-full" />
-                </div>
-              </div>
-            ))}
-          {products !== undefined && <span className="sr-only" role="status">Flavours loaded</span>}
           {flavorProfiles.map((flavor, index) => (
             <motion.div
               key={flavor.slug}
@@ -97,11 +85,6 @@ function FlavoursContent() {
                       p.slug === flavorPackSlug(flavor.slug) ||
                       (p.type === "single" && p.flavorName?.toLowerCase() === flavor.name.toLowerCase())
                   )
-                  if (products === undefined) {
-                    return (
-                      <div className="mt-6 h-12 bg-white/10 animate-pulse" aria-hidden="true" />
-                    )
-                  }
                   return pack ? (
                     <div className="mt-6 space-y-2">
                       <AddToCartButton
@@ -121,13 +104,20 @@ function FlavoursContent() {
                       </Link>
                     </div>
                   ) : (
-                    <Link
-                      href="/shop"
-                      className="mt-6 w-full bg-[#AFFF00] text-[#121212] px-4 py-3 font-bold text-sm tracking-wide flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-                    >
-                      <ShoppingCart className="w-4 h-4" />
-                      <span>Shop Cases</span>
-                    </Link>
+                    <div className="mt-6 space-y-2">
+                      <Link
+                        href="/shop"
+                        className="w-full bg-[#AFFF00] text-[#121212] px-4 py-3 font-bold text-sm tracking-wide flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        <span>Shop Cases</span>
+                      </Link>
+                      {products === undefined && (
+                        <p className="text-center text-white/35 font-mono text-[10px]" role="status" aria-live="polite">
+                          Product options are loading. You can browse the shop now.
+                        </p>
+                      )}
+                    </div>
                   )
                 })()}
               </div>
