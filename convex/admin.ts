@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { internalMutation, query } from "./_generated/server"
 import type { QueryCtx } from "./_generated/server"
 import type { Doc } from "./_generated/dataModel"
 
@@ -26,9 +26,9 @@ export const getMyRole = query({
   },
 })
 
-// One-off promotion run from the CLI:
+// One-off promotion run from the CLI (internal: NOT callable from the browser):
 //   npx convex run admin:promote '{"email":"you@example.com"}'
-export const promote = mutation({
+export const promote = internalMutation({
   args: { email: v.string(), secret: v.string() },
   handler: async (ctx, args) => {
     // CLI-invoked mutations have no user identity; guard with the Clerk

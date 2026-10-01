@@ -217,6 +217,14 @@ export const seedPlans = internalMutation({
   args: {},
   handler: async (ctx) => {
     const existing = await ctx.db.query("plans").collect()
+
+    // Idempotent: ensure the Case Club plan advertises its shop discount even
+    // on deployments seeded before discountPctOnShop existed.
+    const caseClub = existing.find((p) => p.slug === "case-club")
+    if (caseClub && caseClub.discountPctOnShop === undefined) {
+      await ctx.db.patch(caseClub._id, { discountPctOnShop: 10 })
+    }
+
     if (existing.length > 0) return
 
     await ctx.db.insert("plans", {
@@ -249,6 +257,7 @@ export const seedPlans = internalMutation({
       ],
       amountKes: 1500,
       interval: "monthly",
+      discountPctOnShop: 10,
       isActive: true,
       sortOrder: 1,
     })

@@ -7,7 +7,7 @@ import { api } from "@/convex/_generated/api"
 import Image from "next/image"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { ArrowLeft, Star, Heart, Minus, Plus, ShieldCheck, Truck, Zap, Share2, Check, ShoppingBag } from "lucide-react"
+import { ArrowLeft, Star, Heart, Minus, Plus, ShieldCheck, Truck, Zap, Share2, ShoppingBag } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { ClientOnly } from "@/components/client-only"
 import { formatKes } from "@/lib/delivery"
@@ -16,6 +16,9 @@ import { useCart } from "@/components/cart-provider"
 import { useWishlist } from "@/components/wishlist-provider"
 import { getRating, getStockStatus, PRODUCT_FAQS } from "@/lib/shop-data"
 import { toast } from "sonner"
+import type { Doc } from "@/convex/_generated/dataModel"
+
+type Product = Doc<"products">
 
 export default function ShopSlugClient() {
   return (
@@ -41,6 +44,8 @@ function ShopSlugInner() {
   const router = useRouter()
   const [qty, setQty] = useState(1)
   const [showShareCopied, setShowShareCopied] = useState(false)
+  // Computed once per mount, not during render (render purity).
+  const [priceValidUntil] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0])
 
   const rating = useMemo(() => getRating(slug), [slug])
   const stock = useMemo(() => (product ? getStockStatus(product) : { label: "Checking...", tone: "in" as const }), [product])
@@ -49,7 +54,7 @@ function ShopSlugInner() {
 
   const related = useMemo(() => {
     if (!all || !product) return []
-    return all.filter((p) => p._id !== product._id).sort((a, b) => {
+    return all.filter((p: Product) => p._id !== product._id).sort((a: Product, b: Product) => {
       // prefer same type then bestselling
       if (a.type === product.type && b.type !== product.type) return -1
       if (b.type === product.type && a.type !== product.type) return 1
@@ -59,6 +64,10 @@ function ShopSlugInner() {
 
   const handleAdd = (goCheckout = false) => {
     if (!product) return
+    if (stock.tone === "out") {
+      toast.error("This pack is out of stock right now")
+      return
+    }
     cart.addItem({
       productId: product._id,
       slug: product.slug,
@@ -69,7 +78,7 @@ function ShopSlugInner() {
       compareAtKes: product.compareAtKes,
     }, qty)
     if (goCheckout) {
-      cart.openCart()
+      cart.closeCart()
       router.push("/checkout")
     } else {
       toast.success(`${product.name} ×${qty} added to cart`, { action: { label: "View Cart", onClick: () => cart.openCart() } })
@@ -111,7 +120,7 @@ function ShopSlugInner() {
       priceCurrency: "KES",
       price: product.priceKes,
       availability: stock.tone === "out" ? "https://schema.org/OutOfStock" : "https://schema.org/InStock",
-      priceValidUntil: new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0],
+      priceValidUntil,
       seller: { "@type": "Organization", name: "GiGi Energy" },
     },
   }
@@ -195,13 +204,22 @@ function ShopSlugInner() {
               </span>
               <span className={`font-mono text-xs px-2.5 py-1.5 border ${stock.tone === "low" ? "bg-[#f59e0b] text-[#121212] border-[#f59e0b]" : stock.tone === "out" ? "bg-red-500 text-white border-red-500" : "bg-[#AFFF00]/10 text-[#AFFF00] border-[#AFFF00]/20"}`}>{stock.label}</span>
               <button
-                onClick={() => { wishlist.toggle(product._id); toast.success(wishlist.isWishlisted(product._id) ? "Removed from wishlist" : "Added to wishlist") }}
+                onClick={() => { const was = wishlist.isWishlisted(product._id); wishlist.toggle(product._id); toast.success(was ? "Removed from wishlist" : "Added to wishlist") }}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 border font-mono text-xs cursor-pointer ${wishlist.isWishlisted(product._id) ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]" : "bg-white/5 text-white/60 border-white/10 hover:border-[#AFFF00]/30"}`}
               >
                 <Heart className={`w-3.5 h-3.5 ${wishlist.isWishlisted(product._id) ? "fill-[#121212]" : ""}`} /> {wishlist.isWishlisted(product._id) ? "Wishlisted" : "Wishlist"}
               </button>
               <button
-                onClick={async () => { await navigator.clipboard.writeText(`${typeof window !== "undefined" ? window.location.origin : SITE_URL}/shop/${product.slug}`); setShowShareCopied(true); setTimeout(() => setShowShareCopied(false), 1800) }}
+                onClick={async () => {
+                  try {
+                    const url = `${typeof window !== "undefined" ? window.location.origin : SITE_URL}/shop/${product.slug}`
+                    await navigator.clipboard.writeText(url)
+                    setShowShareCopied(true)
+                    setTimeout(() => setShowShareCopied(false), 1800)
+                  } catch {
+                    toast.error("Couldn't copy link — long-press the URL to copy it")
+                  }
+                }}
                 className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] px-3 py-1.5 font-mono text-xs cursor-pointer"
               >
                 <Share2 className="w-3.5 h-3.5" /> {showShareCopied ? "Copied!" : "Share"}
@@ -311,7 +329,7 @@ function ShopSlugInner() {
             <div>
               <h2 className="text-white font-black text-sm flex items-center gap-2"><ShoppingBag className="w-4 h-4 text-[#AFFF00]" /> Complete your fridge</h2>
               <div className="mt-4 grid grid-cols-2 gap-3">
-                {related.map((p) => (
+                {related.map((p: Product) => (
                   <Link key={p._id} href={`/shop/${p.slug}`} className="bg-white/5 border border-white/10 p-3 flex gap-3 hover:border-[#AFFF00]/30 transition-colors group">
                     <div className="relative w-14 h-14 bg-white/[0.03] shrink-0 overflow-hidden">
                       <Image src={p.image} alt={p.name} fill sizes="56px" className="object-contain p-1" />

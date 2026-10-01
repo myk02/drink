@@ -178,7 +178,7 @@ export function BentoGrid() {
             animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
             transition={{ delay: 0.1 }}
           >
-            What's Inside
+            What&apos;s Inside
           </motion.span>
 
           <div className="overflow-hidden mt-2">

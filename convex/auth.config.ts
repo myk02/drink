@@ -1,4 +1,4 @@
-export default {
+const clerkConvexAuthConfig = {
   providers: [
     {
       domain: "https://quiet-coral-18.clerk.accounts.dev",
@@ -6,3 +6,5 @@ export default {
     },
   ],
 }
+
+export default clerkConvexAuthConfig

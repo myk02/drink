@@ -81,8 +81,8 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", "Inter Fallback", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Geist Mono", monospace;
+  --font-sans: var(--font-inter), "Inter Fallback", system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", "Geist Mono", monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -133,6 +133,32 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+/* Keyboard focus ring — brand lime so it works on both light and dark sections */
+:focus-visible {
+  outline: 2px solid #afff00;
+  outline-offset: 2px;
+}
+
+/* Respect users who prefer reduced motion: kill the decorative animations.
+   Framer Motion respects prefers-reduced-motion for transform animations via
+   its own handling; this covers the CSS-driven ones. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-pulse-glow,
+  .animate-marquee,
+  .noise-overlay::before {
+    animation: none !important;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

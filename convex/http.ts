@@ -36,6 +36,7 @@ interface PaystackEvent {
     email?: unknown
     channel?: unknown
     kind?: unknown
+    paid?: unknown
     customer?: { email?: unknown; customer_code?: unknown } | null
     authorization?: { channel?: unknown } | null
     subscription_code?: unknown
@@ -130,6 +131,22 @@ const paystackWebhook = httpAction(async (ctx, req) => {
         await ctx.runMutation(internal.subscriptions.markChargeFailed, {
           email,
           detail: "paystack invoice payment failed",
+        })
+        break
+      }
+
+      case "invoice.update": {
+        // Paystack-managed CARD renewals land here (invoice paid). Advance the
+        // local billing state keyed by subscription_code — reference
+        // heuristics don't apply to auto-charges.
+        const data = event.data
+        const subCode =
+          str(data?.subscription?.subscription_code) ?? str(data?.subscription_code)
+        const paidFlag = data?.paid
+        if (!subCode || paidFlag === false) break
+        await ctx.runMutation(internal.subscriptions.advanceRenewalBySubscriptionCode, {
+          subscriptionCode: subCode,
+          amountSubunit: Number(data?.amount ?? 0) || undefined,
         })
         break
       }

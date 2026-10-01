@@ -122,7 +122,7 @@ export function ActivationsSection() {
           initial="hidden"
           animate={isInView ? "visible" : "hidden"}
         >
-          {activations.map((activation, index) => (
+          {activations.map((activation) => (
             <Link key={activation.title} href={activation.href}>
               <motion.div
                 variants={itemVariants}

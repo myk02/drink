@@ -2,11 +2,11 @@
 
 import type React from "react"
 
-import { motion, AnimatePresence, useSpring, type Variants } from "framer-motion"
+import { motion, AnimatePresence, useSpring, type PanInfo, type Variants } from "framer-motion"
 import { useState } from "react"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { flavorProfiles } from "@/lib/flavors"
 
 const flavors = flavorProfiles
@@ -74,6 +74,11 @@ export function FlavorCarousel() {
   const nextFlavor = () => paginate(1)
   const prevFlavor = () => paginate(-1)
 
+  const handleDragEnd = (_: unknown, info: PanInfo) => {
+    if (info.offset.x < -80) nextFlavor()
+    else if (info.offset.x > 80) prevFlavor()
+  }
+
   return (
     <section id="flavours" className="relative py-16 bg-white overflow-hidden">
       <motion.div
@@ -132,10 +137,11 @@ export function FlavorCarousel() {
           <div className="flex items-center justify-center gap-6">
             <motion.button
               onClick={prevFlavor}
-              className="hidden md:flex w-12 h-12 rounded-full border-2 border-[#121212] items-center justify-center hover:bg-[#121212] hover:text-white transition-colors"
+              className="hidden md:flex w-12 h-12 rounded-full border-2 border-[#121212] items-center justify-center hover:bg-[#121212] hover:text-white transition-colors cursor-pointer"
               whileHover={{ scale: 1.1, rotate: -5 }}
               whileTap={{ scale: 0.9 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              aria-label="Previous flavour"
             >
               <ChevronLeft className="w-5 h-5" />
             </motion.button>
@@ -152,10 +158,14 @@ export function FlavorCarousel() {
                 style={{ perspective: 1000 }}
               >
                 <motion.div
-                  className="bg-white rounded-3xl p-6 md:p-8 border-2 border-[#121212]/10 shadow-xl"
+                  className="bg-white rounded-3xl p-6 md:p-8 border-2 border-[#121212]/10 shadow-xl touch-pan-y"
                   style={{ rotateX, rotateY, transformStyle: "preserve-3d" }}
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
+                  drag="x"
+                  dragConstraints={{ left: 0, right: 0 }}
+                  dragElastic={0.15}
+                  onDragEnd={handleDragEnd}
                 >
                   <div className="grid md:grid-cols-2 gap-6 items-center">
                     <motion.div
@@ -218,7 +228,7 @@ export function FlavorCarousel() {
                       </motion.div>
 
                       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-                        <Link href="/flavours">
+                        <Link href={`/flavours#${currentFlavor.slug}`}>
                           <motion.button
                             className="px-6 py-3 rounded-full font-bold text-sm tracking-wide w-full md:w-auto relative overflow-hidden cursor-pointer"
                             whileHover={{ scale: 1.02 }}
@@ -244,10 +254,11 @@ export function FlavorCarousel() {
 
             <motion.button
               onClick={nextFlavor}
-              className="hidden md:flex w-12 h-12 rounded-full border-2 border-[#121212] items-center justify-center hover:bg-[#121212] hover:text-white transition-colors"
+              className="hidden md:flex w-12 h-12 rounded-full border-2 border-[#121212] items-center justify-center hover:bg-[#121212] hover:text-white transition-colors cursor-pointer"
               whileHover={{ scale: 1.1, rotate: 5 }}
               whileTap={{ scale: 0.9 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              aria-label="Next flavour"
             >
               <ChevronRight className="w-5 h-5" />
             </motion.button>
@@ -256,15 +267,17 @@ export function FlavorCarousel() {
           <div className="flex md:hidden justify-center gap-4 mt-6">
             <motion.button
               onClick={prevFlavor}
-              className="w-10 h-10 rounded-full border-2 border-[#121212] flex items-center justify-center"
+              className="w-10 h-10 rounded-full border-2 border-[#121212] flex items-center justify-center cursor-pointer"
               whileTap={{ scale: 0.9 }}
+              aria-label="Previous flavour"
             >
               <ChevronLeft className="w-4 h-4" />
             </motion.button>
             <motion.button
               onClick={nextFlavor}
-              className="w-10 h-10 rounded-full border-2 border-[#121212] flex items-center justify-center"
+              className="w-10 h-10 rounded-full border-2 border-[#121212] flex items-center justify-center cursor-pointer"
               whileTap={{ scale: 0.9 }}
+              aria-label="Next flavour"
             >
               <ChevronRight className="w-4 h-4" />
             </motion.button>

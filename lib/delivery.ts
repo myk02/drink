@@ -21,6 +21,17 @@ export function getZoneFee(zoneName: string): number | null {
   return zone ? zone.feeKes : null
 }
 
+// Single source of truth for the delivery fee for a given zone + subtotal.
+// Used by BOTH the checkout UI (display) and the Convex checkout action
+// (charging) so the advertised free-delivery threshold can never diverge
+// from what the customer is actually charged.
+export function computeDeliveryFeeKes(zoneName: string, subtotalKes: number): number | null {
+  const zoneFee = getZoneFee(zoneName)
+  if (zoneFee === null) return null
+  if (subtotalKes >= FREE_DELIVERY_THRESHOLD_KES) return 0
+  return zoneFee
+}
+
 export function formatKes(amount: number): string {
   return `KSh ${amount.toLocaleString("en-KE")}`
 }

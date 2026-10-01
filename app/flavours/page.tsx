@@ -9,6 +9,7 @@ import { ArrowLeft, ShoppingCart } from "lucide-react"
 import { ClientOnly } from "@/components/client-only"
 import { AddToCartButton } from "@/components/cart-drawer"
 import { flavorProfiles } from "@/lib/flavors"
+import type { Doc } from "@/convex/_generated/dataModel"
 
 function FlavoursContent() {
   const products = useQuery(api.products.getActive)
@@ -17,10 +18,12 @@ function FlavoursContent() {
     <div className="min-h-screen bg-[#121212]">
       <div className="max-w-7xl mx-auto px-6 py-24">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-12">
-          <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm mb-8 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Home
-          </Link>
+          <div className="mb-8">
+            <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm transition-colors">
+              <ArrowLeft className="w-4 h-4" />
+              Back to Home
+            </Link>
+          </div>
           <motion.span className="font-mono text-[#AFFF00] text-xs tracking-widest inline-block">
             OUR FLAVOURS
           </motion.span>
@@ -37,6 +40,7 @@ function FlavoursContent() {
           {flavorProfiles.map((flavor, index) => (
             <motion.div
               key={flavor.slug}
+              id={flavor.slug}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
@@ -62,7 +66,7 @@ function FlavoursContent() {
                     <p className="text-sm font-mono" style={{ color: flavor.accent }}>{flavor.tagline}</p>
                   </div>
                   {flavor.price && (
-                    <span className="text-white font-bold text-lg">KSh {flavor.price}</span>
+                    <span className="text-white/50 font-mono text-xs text-right">Single can<br /><span className="text-white font-bold text-lg">KSh {flavor.price}</span></span>
                   )}
                 </div>
                 <p className="text-white/60 text-sm font-mono mt-3 leading-relaxed">{flavor.description}</p>
@@ -77,9 +81,9 @@ function FlavoursContent() {
                   ))}
                 </div>
                 {(() => {
-                  const pack = products?.find((p) => p.type === "single" && p.flavorName === flavor.name)
+                  const pack = products?.find((p: Doc<"products">) => p.type === "single" && p.flavorName?.toLowerCase() === flavor.name.toLowerCase())
                   return pack ? (
-                    <div className="mt-6">
+                    <div className="mt-6 space-y-2">
                       <AddToCartButton
                         product={{
                           _id: pack._id,
@@ -92,6 +96,9 @@ function FlavoursContent() {
                         }}
                         label={`Add 12-Pack · KSh ${pack.priceKes.toLocaleString("en-KE")}`}
                       />
+                      <Link href={`/shop/${pack.slug}`} className="block text-center text-white/40 hover:text-[#AFFF00] font-mono text-xs transition-colors">
+                        View 12-pack details →
+                      </Link>
                     </div>
                   ) : (
                     <Link

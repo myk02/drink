@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { useAuth, UserButton } from "@clerk/nextjs"
+import { useAuth, UserButton, SignInButton as ClerkSignInButton } from "@clerk/nextjs"
 import { useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import {
@@ -31,6 +31,8 @@ const STATUS_STYLES: Record<string, string> = {
   active: "bg-[#AFFF00]/10 text-[#AFFF00] border-[#AFFF00]/30",
   past_due: "bg-orange-500/10 text-orange-400 border-orange-500/30",
   paused: "bg-white/5 text-white/50 border-white/20",
+  pending: "bg-white/5 text-white/60 border-white/20",
+  cancelled: "bg-red-500/10 text-red-400 border-red-500/30",
 }
 
 const EVENT_LABELS: Record<string, string> = {
@@ -78,6 +80,12 @@ function PortalContent() {
           We couldn&apos;t find an account record linked to your sign-in yet. If you just created this account,
           give it a minute and reload — membership records sync automatically.
         </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="mt-6 inline-block bg-white/10 text-white px-6 py-3 font-bold text-sm tracking-wide hover:bg-white/20 transition-colors cursor-pointer"
+        >
+          Reload
+        </button>
       </div>
     )
   }
@@ -150,7 +158,7 @@ function PortalContent() {
         </dl>
 
         {/* Renewal link for M-Pesa path */}
-        {subscription.lastRenewalCheckoutUrl && subscription.paymentChannel !== "card" && subscription.status !== "paused" && (
+        {subscription.lastRenewalCheckoutUrl && subscription.paymentChannel !== "card" && (subscription.status === "active" || subscription.status === "past_due") && (
           <a
             href={subscription.lastRenewalCheckoutUrl}
             target="_blank"
@@ -240,7 +248,7 @@ function PortalContent() {
             <BadgeCheck className="w-4 h-4" /> ACTIVE PERKS
           </p>
           <ul className="space-y-2">
-            {plan.perks.slice(0, 3).map((perk) => (
+            {plan.perks.slice(0, 3).map((perk: string) => (
               <li key={perk} className="text-white/60 font-mono text-xs">{perk}</li>
             ))}
           </ul>
@@ -254,11 +262,11 @@ function PortalContent() {
           <p className="text-white/30 font-mono text-xs">Nothing here yet.</p>
         ) : (
           <ul className="space-y-3">
-            {history.map((e) => (
-              <li key={e._id} className="flex items-center justify-between font-mono text-xs">
-                <span className="text-white/60">{EVENT_LABELS[e.type] ?? e.type}{e.detail ? ` · ${e.detail}` : ""}</span>
+            {history.map((e: { _id: string; type: string; detail?: string | null; amountKes?: number | null; createdAt: number }) => (
+              <li key={e._id} className="flex items-center justify-between font-mono text-xs gap-4">
+                <span className="text-white/60">{EVENT_LABELS[e.type] ?? e.type}{e.detail ? ` · ${e.detail}` : ""}<span className="text-white/30"> · {formatDate(e.createdAt)}</span></span>
                 <span className="text-white/30 whitespace-nowrap ml-4">
-                  {e.amountKes ? formatKes(e.amountKes) : formatDate(e.createdAt)}
+                  {e.amountKes ? formatKes(e.amountKes) : "—"}
                 </span>
               </li>
             ))}
@@ -270,11 +278,19 @@ function PortalContent() {
 }
 
 function SignInButtons() {
-  // Rendered only when signed out; Clerk modals keep corners square via provider theme.
+  // Rendered only when signed out; use Clerk modal via SignInButton.
+  // Falls back to a plain link if Clerk fails to load.
   return (
-    <Link href="/" className="inline-block bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
-      Back to Home to Sign In
-    </Link>
+    <div className="flex flex-col gap-3 items-center">
+      <ClerkSignInButton mode="modal">
+        <button className="inline-block bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity cursor-pointer">
+          Sign In
+        </button>
+      </ClerkSignInButton>
+      <Link href="/" className="text-white/40 font-mono text-xs hover:text-white transition-colors">
+        Back to Home
+      </Link>
+    </div>
   )
 }
 

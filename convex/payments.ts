@@ -2,9 +2,13 @@
 import { action, internalAction, type ActionCtx } from "./_generated/server"
 import { api, internal } from "./_generated/api"
 import type { Doc } from "./_generated/dataModel"
-import { getZoneFee } from "../lib/delivery"
+import { computeDeliveryFeeKes } from "../lib/delivery"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function str(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined
+}
 
 function paystackHeaders(secretKey: string): HeadersInit {
   return { Authorization: `Bearer ${secretKey}`, "Content-Type": "application/json" }
@@ -24,7 +28,7 @@ function randomSuffix(): string {
 }
 
 // Creates a pending order and initializes a Paystack hosted checkout.
-// Prices are ALWAYS recomputed here from the DB â€” client prices are never trusted.
+// Prices are ALWAYS recomputed here from the DB — client prices are never trusted.
 export const createCheckoutSession = action({
   args: {
     items: v.array(
@@ -43,7 +47,7 @@ export const createCheckoutSession = action({
     }),
     origin: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ authorizationUrl: string; reference: string; orderNumber: string; totalKes: number }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) throw new Error("Payments are not configured yet. Please try again later.")
 
@@ -54,9 +58,13 @@ export const createCheckoutSession = action({
     const phone = args.customer.phone.trim()
     const address = args.customer.address.trim()
     if (!name) throw new Error("Please enter your name")
+    if (name.length > 100) throw new Error("Name is too long")
     if (!EMAIL_RE.test(email)) throw new Error("Please enter a valid email address")
     if (!phone) throw new Error("Please enter your phone number")
+    if (phone.replace(/\D/g, "").length < 9) throw new Error("Please enter a valid phone number")
     if (address.length < 5) throw new Error("Please enter a full delivery address")
+    if (address.length > 500) throw new Error("Delivery address is too long")
+    if (args.customer.notes && args.customer.notes.length > 500) throw new Error("Delivery notes are too long")
 
     let subtotalKes = 0
     const lineItems: Array<{
@@ -73,7 +81,10 @@ export const createCheckoutSession = action({
       }
       const product = await ctx.runQuery(api.products.getById, { id: item.productId })
       if (!product || !product.isActive) {
-        throw new Error(`"${item.productId}" is no longer available â€” please refresh your cart`)
+        throw new Error(`"${item.productId}" is no longer available — please refresh your cart`)
+      }
+      if (product.stock !== undefined && product.stock < item.quantity) {
+        throw new Error(`"${product.name}" only has ${product.stock} left in stock — please adjust your cart`)
       }
       subtotalKes += product.priceKes * item.quantity
       lineItems.push({
@@ -85,12 +96,35 @@ export const createCheckoutSession = action({
       })
     }
 
-    const deliveryFeeKes = getZoneFee(args.customer.zone)
+    // Honors the FREE_DELIVERY_THRESHOLD_KES threshold — matches the promise
+    // shown across the shop UI ("Free delivery over KSh 3,000").
+    const deliveryFeeKes = computeDeliveryFeeKes(args.customer.zone, subtotalKes)
     if (deliveryFeeKes === null) throw new Error("Please choose a valid delivery zone")
 
+    // GiGi Club member discount (e.g. Case Club "10% insider discount") is
+    // applied server-side against the ACTIVE subscription on the paying email
+    // — the client-provided email is matched against subscription records, and
+    // the discount comes from the plan's discountPctOnShop. Never trust a
+    // client-sent percentage.
+    let memberDiscountKes: number | undefined
+    const membership: { planName: string; discountPct: number | null } | null = await ctx.runQuery(
+      api.subscriptions.getMembershipForEmail,
+      { email }
+    )
+    if (membership?.discountPct) {
+      const discount = Math.round((subtotalKes * membership.discountPct) / 100)
+      if (discount > 0) {
+        memberDiscountKes = discount
+        subtotalKes -= discount
+      }
+    }
+
+    // Free-delivery promise must be judged on the pre-discount subtotal (what
+    // the club advertises), but the threshold already passed above.
     const totalKes = subtotalKes + deliveryFeeKes
     const orderNumber = generateOrderNumber()
-    const reference = `${orderNumber}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
+    // Timestamp + double random suffix — far stronger than Math.random() alone.
+    const reference = `${orderNumber}-${Date.now().toString(36).toUpperCase()}${randomSuffix()}${randomSuffix()}`
 
     await ctx.runMutation(internal.orders.createPendingOrder, {
       orderNumber,
@@ -100,6 +134,7 @@ export const createCheckoutSession = action({
       phone,
       items: lineItems,
       subtotalKes,
+      memberDiscountKes,
       deliveryFeeKes,
       totalKes,
       deliveryZone: args.customer.zone,
@@ -119,7 +154,7 @@ export const createCheckoutSession = action({
         amount: totalKes * 100,
         currency: "KES",
         reference,
-        callback_url: `${args.origin}/checkout/success`,
+        callback_url: `${args.origin}/checkout/success?reference=${encodeURIComponent(reference)}`,
         channels: ["card", "mobile_money", "bank_transfer"],
         metadata: {
           order_number: orderNumber,
@@ -145,9 +180,10 @@ export const createCheckoutSession = action({
 
 // Fallback for when the webhook hasn't landed yet: verify directly with
 // Paystack, then mark the order paid server-side.
+// Return type annotation breaks a TS inference cycle with internal.orders.*
 export const verifyPayment = action({
   args: { reference: v.string() },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ orderStatus: "paid" | "failed" | "pending" | "review" }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) throw new Error("Payments are not configured yet.")
 
@@ -171,9 +207,77 @@ export const verifyPayment = action({
       return { orderStatus: "review" as const }
     }
     if (tx.status === "failed" || tx.status === "abandoned") {
+      await ctx.runMutation(internal.orders.markCancelledByReference, { reference: args.reference }).catch(() => null)
       return { orderStatus: "failed" as const }
     }
     return { orderStatus: "pending" as const }
+  },
+})
+
+// Fallback for subscription thanks-page: the webhook may land a few seconds
+// after the redirect, so the customer can force a direct Paystack check.
+export const verifySubscriptionPayment = action({
+  args: { reference: v.string() },
+  handler: async (ctx, args): Promise<{ status: "active" | "failed" | "pending" | "review" }> => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY
+    if (!secretKey) throw new Error("Payments are not configured yet.")
+
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(args.reference)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    })
+    const payload = await res.json().catch(() => null)
+    if (!res.ok || !payload?.status || !payload?.data) {
+      return { status: "pending" as const }
+    }
+
+    const tx = payload.data
+    if (tx.status === "success" && tx.currency === "KES") {
+      const result = await ctx.runMutation(internal.subscriptions.handleChargeSuccess, {
+        reference: args.reference,
+        email: (str(tx.customer?.email) ?? "").trim().toLowerCase(),
+        amountSubunit: Number(tx.amount ?? 0),
+        channel: typeof tx.authorization?.channel === "string" ? tx.authorization.channel : "unknown",
+        customerCode: typeof tx.customer?.customer_code === "string" ? tx.customer.customer_code : undefined,
+        subscriptionCode: typeof tx.subscription_code === "string" ? tx.subscription_code : undefined,
+        emailToken: typeof tx.email_token === "string" ? tx.email_token : undefined,
+        planSlugHint: undefined,
+      })
+      return { status: result.outcome === "unknown_subscription" ? ("review" as const) : ("active" as const) }
+    }
+    if (tx.status === "failed" || tx.status === "abandoned") {
+      return { status: "failed" as const }
+    }
+    return { status: "pending" as const }
+  },
+})
+
+// Fallback for the donation thanks-page (same pattern as orders/subscriptions).
+export const verifyDonationPayment = action({
+  args: { reference: v.string() },
+  handler: async (ctx, args): Promise<{ status: "success" | "failed" | "pending" | "review" }> => {
+    const secretKey = process.env.PAYSTACK_SECRET_KEY
+    if (!secretKey) throw new Error("Payments are not configured yet.")
+
+    const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(args.reference)}`, {
+      headers: { Authorization: `Bearer ${secretKey}` },
+    })
+    const payload = await res.json().catch(() => null)
+    if (!res.ok || !payload?.status || !payload?.data) {
+      return { status: "pending" as const }
+    }
+
+    const tx = payload.data
+    if (tx.status === "success" && tx.currency === "KES") {
+      const result = await ctx.runMutation(internal.donations.markPaidByReference, {
+        reference: args.reference,
+        amountPaidSubunit: Number(tx.amount ?? 0),
+      })
+      return { status: result.outcome === "amount_mismatch" ? ("review" as const) : ("success" as const) }
+    }
+    if (tx.status === "failed" || tx.status === "abandoned") {
+      return { status: "failed" as const }
+    }
+    return { status: "pending" as const }
   },
 })
 
@@ -268,7 +372,7 @@ export const startDonation = action({
     isAnonymous: v.boolean(),
     origin: v.string(),
   },
-  handler: async (ctx, args) => {
+  handler: async (ctx, args): Promise<{ authorizationUrl: string; reference: string }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) throw new Error("Payments are not configured yet.")
 
@@ -319,7 +423,7 @@ export const startDonation = action({
 // button using this link until it is paid (or attempts run out).
 export const renewDueMpesaSubscriptions = internalAction({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ processed: number; error?: string }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) return { processed: 0, error: "PAYSTACK_SECRET_KEY missing" as const }
 
@@ -399,7 +503,7 @@ async function setManagedSubscription(
 
 export const pauseMySubscription = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ status: "paused" }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) throw new Error("Payments are not configured yet.")
     const email = await requireSignedInEmail(ctx)
@@ -415,7 +519,7 @@ export const pauseMySubscription = action({
 
 export const resumeMySubscription = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ status: "active" }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) throw new Error("Payments are not configured yet.")
     const email = await requireSignedInEmail(ctx)
@@ -431,7 +535,7 @@ export const resumeMySubscription = action({
 
 export const cancelMySubscription = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{ status: "cancelled" }> => {
     const secretKey = process.env.PAYSTACK_SECRET_KEY
     if (!secretKey) throw new Error("Payments are not configured yet.")
     const email = await requireSignedInEmail(ctx)

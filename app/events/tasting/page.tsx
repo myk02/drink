@@ -5,13 +5,30 @@ import { api } from "@/convex/_generated/api"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar, Clock, Users } from "lucide-react"
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
 import { ClientOnly } from "@/components/client-only"
+import { MOCK_EVENTS } from "@/lib/events-data"
 
 function TastingEventsContent() {
-  const events = useQuery(api.events.getByCategory, { category: "tasting" })
+  const dbEvents = useQuery(api.events.getByCategory, { category: "tasting" })
+  // Fall back to bundled tastings when the DB is empty (same as /events hub).
+  const events = useMemo(() => {
+    if (dbEvents === undefined) return undefined
+    if (dbEvents.length > 0) return dbEvents
+    return MOCK_EVENTS.filter((e) => e.category === "tasting").map((e) => ({
+      _id: e._id as unknown as Id<"events">,
+      title: e.title,
+      description: e.description,
+      date: e.date,
+      time: e.time,
+      location: e.location,
+      status: e.status,
+      registered: e.registered,
+      capacity: e.capacity,
+    }))
+  }, [dbEvents])
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
 
   const markRegistered = (eventId: string) => setRegisteredIds((prev) => new Set(prev).add(eventId))
@@ -43,7 +60,7 @@ function TastingEventsContent() {
         )}
 
         <div className="grid md:grid-cols-2 gap-6">
-          {events?.map((event, index) => (
+          {events?.map((event: { _id: Id<"events">; title: string; description: string; date: string; time: string; location: string; status: string; registered: number; capacity: number }, index: number) => (
             <TastingEventCard
               key={event._id}
               event={event}
@@ -84,9 +101,32 @@ function TastingEventCard({ event, index, isRegistered, onRegistered }: { event:
 
   const handleRegister = async () => {
     if (isSubmitting) return
+    const cleanName = name.trim()
+    const cleanEmail = email.trim().toLowerCase()
+    if (!cleanName || !cleanEmail) {
+      toast.error("Name and email required")
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      toast.error("Valid email required")
+      return
+    }
+    // Demo seed events (evt_*) aren't in the DB — confirm locally.
+    if (String(event._id).startsWith("evt_")) {
+      setIsSubmitting(true)
+      await new Promise((r) => setTimeout(r, 500))
+      setIsSubmitting(false)
+      onRegistered()
+      setOpen(false)
+      setName("")
+      setEmail("")
+      setPhone("")
+      toast.success("You're on the list! (Demo event — real booking opens soon.)")
+      return
+    }
     setIsSubmitting(true)
     try {
-      await register({ eventId: event._id, name, email, phone: phone || undefined })
+      await register({ eventId: event._id, name: cleanName, email: cleanEmail, phone: phone.trim() || undefined })
       onRegistered()
       setOpen(false)
       setName("")

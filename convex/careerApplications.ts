@@ -1,12 +1,40 @@
 import { v } from "convex/values"
-import { mutation, query } from "./_generated/server"
+import { mutation, query, type MutationCtx } from "./_generated/server"
+import type { Id } from "./_generated/dataModel"
 
+// Resume upload URL: short-lived and scoped to document MIME types.
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl()
   },
 })
+
+const ALLOWED_RESUME_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]
+const MAX_RESUME_BYTES = 5 * 1024 * 1024
+
+// Server-side enforcement of the resume constraints the UI advertises
+// (PDF/DOC/DOCX, max 5 MB). Invalid uploads are deleted from storage.
+async function validateResume(
+  ctx: MutationCtx,
+  storageId: Id<"_storage">
+): Promise<void> {
+  const metadata = await ctx.storage.getMetadata(storageId)
+  // contentType can be null for uploads that never sent a Content-Type header
+  const contentType = metadata?.contentType ?? ""
+  if (!metadata || !ALLOWED_RESUME_TYPES.includes(contentType)) {
+    await ctx.storage.delete(storageId)
+    throw new Error("Resume must be a PDF, DOC or DOCX file")
+  }
+  if (metadata.size > MAX_RESUME_BYTES) {
+    await ctx.storage.delete(storageId)
+    throw new Error("Resume is too large — the limit is 5 MB")
+  }
+}
 
 export const submit = mutation({
   args: {
@@ -44,6 +72,9 @@ export const submit = mutation({
         if (e instanceof Error && e.message.includes("linkedin")) throw e
         throw new Error("Please enter a valid LinkedIn URL")
       }
+    }
+    if (args.resumeStorageId) {
+      await validateResume(ctx, args.resumeStorageId)
     }
 
     let userId

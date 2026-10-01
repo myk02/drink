@@ -4,7 +4,11 @@ import type { WebhookEvent } from "@clerk/nextjs/server"
 import { ConvexHttpClient } from "convex/browser"
 import { api } from "@/convex/_generated/api"
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!)
+function getConvexClient(): ConvexHttpClient | null {
+  const url = process.env.NEXT_PUBLIC_CONVEX_URL
+  if (!url) return null
+  return new ConvexHttpClient(url)
+}
 
 export async function POST(req: Request) {
   const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -20,11 +24,18 @@ export async function POST(req: Request) {
     return new Response("Missing svix headers", { status: 400 })
   }
 
-  const payload = await req.json()
+  // Svix signs the EXACT raw bytes — verify against req.text(), not a
+  // re-serialized JSON.stringify(payload) which can differ in formatting.
+  const rawBody = await req.text()
+  try {
+    JSON.parse(rawBody)
+  } catch {
+    return new Response("Invalid JSON body", { status: 400 })
+  }
   let evt: WebhookEvent
   try {
     const wh = new Webhook(CLERK_WEBHOOK_SECRET)
-    evt = wh.verify(JSON.stringify(payload), {
+    evt = wh.verify(rawBody, {
       "svix-id": svixId,
       "svix-timestamp": svixTimestamp,
       "svix-signature": svixSignature,
@@ -40,6 +51,10 @@ export async function POST(req: Request) {
       email_addresses.find((e) => e.id === primaryEmailId)?.email_address ??
       email_addresses[0]?.email_address
 
+    const convex = getConvexClient()
+    if (!convex) {
+      return new Response("NEXT_PUBLIC_CONVEX_URL is not configured", { status: 500 })
+    }
     await convex.mutation(api.auth.syncUser, {
       clerkId: id,
       name: [first_name, last_name].filter(Boolean).join(" ") || undefined,
@@ -47,6 +62,9 @@ export async function POST(req: Request) {
       imageUrl: image_url,
     })
   }
+
+  // user.deleted and other event types need no action — return 200 so Clerk
+  // doesn't retry. Stale user rows are harmless (lookups miss, UI shows retry).
 
   return new Response(null, { status: 200 })
 }

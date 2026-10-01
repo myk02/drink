@@ -1,16 +1,16 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import { ArrowLeft, Lock, Loader2 } from "lucide-react"
-import { useAction } from "convex/react"
+import { useAction, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
 import { useCart } from "@/components/cart-provider"
 import { ClientOnly } from "@/components/client-only"
-import { DELIVERY_ZONES, formatKes, getZoneFee } from "@/lib/delivery"
+import { DELIVERY_ZONES, formatKes, computeDeliveryFeeKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
 
 const inputClass =
   "w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
@@ -19,35 +19,54 @@ function CheckoutContent() {
   const cart = useCart()
   const createCheckout = useAction(api.payments.createCheckoutSession)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [form, setForm] = useState({ name: "", email: "", phone: "", zone: "", address: "", notes: "" })
-  const [redirecting, setRedirecting] = useState(false)
-
-  // Restore contact info if the user paid here before
-  useEffect(() => {
+  // Restore contact info if the user paid here before — lazy init reads
+  // localStorage once (client-only component), no hydration effect needed.
+  const [form, setForm] = useState(() => {
+    const base = { name: "", email: "", phone: "", zone: "", address: "", notes: "" }
     try {
-      const last = window.localStorage.getItem("gigi-last-order")
+      const last = typeof window !== "undefined" ? window.localStorage.getItem("gigi-last-order") : null
       if (last) {
-        const { email } = JSON.parse(last) as { email?: string }
-        if (email) setForm((f) => ({ ...f, email }))
+        const parsed = JSON.parse(last) as { email?: string; name?: string; phone?: string; address?: string; zone?: string }
+        return {
+          ...base,
+          email: parsed.email ?? base.email,
+          name: parsed.name ?? base.name,
+          phone: parsed.phone ?? base.phone,
+          address: parsed.address ?? base.address,
+          zone: parsed.zone ?? base.zone,
+        }
       }
     } catch {
       // ignore
     }
-  }, [])
+    return base
+  })
+  const [redirecting, setRedirecting] = useState(false)
 
-  const deliveryFeeKes = form.zone ? getZoneFee(form.zone) : null
-  const totalKes = deliveryFeeKes !== null ? cart.subtotalKes + deliveryFeeKes : null
-  const canSubmit =
-    cart.items.length > 0 &&
-    form.name.trim().length > 1 &&
-    /.+@.+\..+/.test(form.email) &&
-    form.phone.trim().length > 6 &&
-    !!form.zone &&
-    form.address.trim().length >= 5
+  // GiGi Club preview: show the discount the backend will apply for this email
+  // (public query, safe fields only — the charge itself is computed server-side).
+  const emailTrimmed = form.email.trim().toLowerCase()
+  const membership = useQuery(
+    api.subscriptions.getMembershipForEmail,
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailTrimmed) ? { email: emailTrimmed } : "skip"
+  )
+
+  // Same computation the backend charges — keeps UI total == charged total.
+  // Delivery/free-delivery threshold is judged on the PRE-discount subtotal
+  // ("spend KSh 3,000 → free delivery"), matching createCheckoutSession.
+  const discountPct = membership?.discountPct ?? null
+  const memberDiscountKes = discountPct ? Math.round((cart.subtotalKes * discountPct) / 100) : 0
+  const deliveryFeeKes = form.zone ? computeDeliveryFeeKes(form.zone, cart.subtotalKes) : null
+  const totalKes = deliveryFeeKes !== null ? cart.subtotalKes - memberDiscountKes + deliveryFeeKes : null
+  const freeDeliveryUnlocked = cart.subtotalKes >= FREE_DELIVERY_THRESHOLD_KES
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isSubmitting || !canSubmit || !form.zone) return
+    if (isSubmitting) return
+    if (!form.zone) {
+      toast.error("Please choose a delivery zone")
+      return
+    }
     setIsSubmitting(true)
     try {
       const result = await createCheckout({
@@ -63,7 +82,7 @@ function CheckoutContent() {
         origin: window.location.origin,
       })
       try {
-        window.localStorage.setItem("gigi-last-order", JSON.stringify({ reference: result.reference, email: form.email.trim().toLowerCase() }))
+        window.localStorage.setItem("gigi-last-order", JSON.stringify({ reference: result.reference, email: form.email.trim().toLowerCase(), name: form.name, phone: form.phone, address: form.address, zone: form.zone }))
       } catch {
         // ignore storage errors
       }
@@ -115,9 +134,9 @@ function CheckoutContent() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
               <section className="bg-white/5 border border-white/10 p-6 space-y-4">
                 <h2 className="text-white font-bold tracking-tight mb-2">Contact</h2>
-                <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full Name *" className={inputClass} />
-                <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email Address *" className={inputClass} />
-                <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone Number (M-Pesa) *" className={inputClass} />
+                <input required autoComplete="name" aria-label="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Full Name *" className={inputClass} />
+                <input required type="email" autoComplete="email" aria-label="Email address" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="Email Address *" className={inputClass} />
+                <input required type="tel" autoComplete="tel" aria-label="Phone number for M-Pesa" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="Phone Number (M-Pesa) *" className={inputClass} />
               </section>
 
               <section className="bg-white/5 border border-white/10 p-6 space-y-4">
@@ -135,7 +154,7 @@ function CheckoutContent() {
                     </option>
                   ))}
                 </select>
-                <textarea required value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Delivery Address * (building, street, landmark)" rows={2} className={`${inputClass} resize-none`} />
+                <textarea required aria-label="Delivery address" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Delivery Address * (building, street, landmark)" rows={2} className={`${inputClass} resize-none`} />
                 <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Delivery Notes (optional — gate code, best time...)" rows={2} className={`${inputClass} resize-none`} />
               </section>
 
@@ -167,10 +186,29 @@ function CheckoutContent() {
                   <span>Subtotal</span>
                   <span>{formatKes(cart.subtotalKes)}</span>
                 </div>
+                {memberDiscountKes > 0 && (
+                  <div className="flex justify-between text-[#AFFF00]">
+                    <span>
+                      GiGi Club · {membership?.planName ?? "Member"} (−{discountPct}%)
+                    </span>
+                    <span>−{formatKes(memberDiscountKes)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-white/50">
                   <span>Delivery{form.zone ? ` · ${form.zone}` : ""}</span>
-                  <span>{deliveryFeeKes !== null ? formatKes(deliveryFeeKes) : "—"}</span>
+                  <span>
+                    {deliveryFeeKes !== null
+                      ? deliveryFeeKes === 0
+                        ? "FREE ✓"
+                        : formatKes(deliveryFeeKes)
+                      : "—"}
+                  </span>
                 </div>
+                {form.zone && !freeDeliveryUnlocked && (
+                  <p className="text-white/30 font-mono text-[11px]">
+                    Add {formatKes(FREE_DELIVERY_THRESHOLD_KES - cart.subtotalKes)} more for free delivery
+                  </p>
+                )}
                 <div className="flex justify-between text-white font-bold text-base pt-2 border-t border-white/10">
                   <span>Total</span>
                   <span className="text-[#AFFF00]">{totalKes !== null ? formatKes(totalKes) : "—"}</span>
@@ -178,7 +216,7 @@ function CheckoutContent() {
               </div>
               <button
                 type="submit"
-                disabled={!canSubmit || isSubmitting}
+                disabled={cart.items.length === 0 || isSubmitting || !form.zone}
                 className="w-full bg-[#AFFF00] disabled:bg-white/10 disabled:text-white/40 text-[#121212] py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-all cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSubmitting ? (

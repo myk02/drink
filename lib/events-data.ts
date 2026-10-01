@@ -151,9 +151,28 @@ export const CATEGORIES = [
   { value: "organizer", label: "Organizer Collabs", icon: "CalendarCheck" },
 ] as const
 
+// Builds a Google Calendar link. Event times are Africa/Nairobi local wall
+// times, so we compute the UTC offset for that date explicitly (Kenya is
+// always UTC+3 — no DST — but we still parse robustly instead of relying on
+// the host machine's timezone).
+function parseEventTime(dateStr: string, timeStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number)
+  const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i)
+  let hours = match ? Number(match[1]) : 9
+  const minutes = match ? Number(match[2]) : 0
+  const meridiem = match ? match[3].toUpperCase() : "AM"
+  if (meridiem === "PM" && hours !== 12) hours += 12
+  if (meridiem === "AM" && hours === 12) hours = 0
+  // Nairobi is UTC+3 year-round
+  return new Date(Date.UTC(y, (m ?? 1) - 1, d ?? 1, hours - 3, minutes))
+}
+
 export function googleCalendarUrl(ev: GiGiEvent) {
-  const start = new Date(`${ev.date} ${ev.time.split("–")[0].trim()}`).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
-  const endDate = new Date(new Date(`${ev.date} ${ev.time.split("–")[0].trim()}`).getTime() + 2 * 3600000).toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
+  const start = parseEventTime(ev.date, ev.time)
+  // End time: use the event's own end time when parseable, otherwise 2h after start
+  const endMatch = ev.time.match(/–\s*(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i)
+  const endDate = endMatch ? parseEventTime(ev.date, endMatch[1]) : new Date(start.getTime() + 2 * 3600000)
+  const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z"
   const details = `${ev.description} — ${ev.location}`
-  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${start}/${endDate}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(ev.location)}`
+  return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${fmt(start)}/${fmt(endDate)}&details=${encodeURIComponent(details)}&location=${encodeURIComponent(ev.location)}`
 }

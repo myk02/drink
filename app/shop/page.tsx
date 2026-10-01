@@ -56,12 +56,12 @@ function ShopContent() {
     if (!products) return { all: 0, starter: 0, single: 0, mixed: 0, c6: 0, c12: 0, c24: 0 }
     return {
       all: products.length,
-      starter: products.filter((p) => p.type === "starter").length,
-      single: products.filter((p) => p.type === "single").length,
-      mixed: products.filter((p) => p.type === "mixed").length,
-      c6: products.filter((p) => p.canCount === 6).length,
-      c12: products.filter((p) => p.canCount === 12).length,
-      c24: products.filter((p) => p.canCount === 24).length,
+      starter: products.filter((p: Product) => p.type === "starter").length,
+      single: products.filter((p: Product) => p.type === "single").length,
+      mixed: products.filter((p: Product) => p.type === "mixed").length,
+      c6: products.filter((p: Product) => p.canCount === 6).length,
+      c12: products.filter((p: Product) => p.canCount === 12).length,
+      c24: products.filter((p: Product) => p.canCount === 24).length,
     }
   }, [products])
 
@@ -143,10 +143,12 @@ function ShopContent() {
         {/* Header */}
         <div className="grid lg:grid-cols-12 gap-8 items-start mb-8">
           <div className="lg:col-span-7">
-            <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm mb-4 transition-colors">
-              <ArrowLeft className="w-4 h-4" /> Back to Home
-            </Link>
-            <span className="font-mono text-[#AFFF00] text-xs tracking-widest">OFFICIAL STORE — NAIROBI & KENYA-WIDE</span>
+            <div className="mb-4">
+              <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm transition-colors">
+                <ArrowLeft className="w-4 h-4" /> Back to Home
+              </Link>
+            </div>
+            <p className="font-mono text-[#AFFF00] text-xs tracking-widest">OFFICIAL STORE — NAIROBI & KENYA-WIDE</p>
             <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mt-2 leading-[0.9]">
               STOCK YOUR <span className="text-[#AFFF00]">FRIDGE</span>
             </h1>
@@ -191,7 +193,7 @@ function ShopContent() {
               {[
                 { v: "4.8★", l: "1,200+ reviews" },
                 { v: "12", l: "Cans / pack" },
-                { v: "~3%", l: "Cart abandon" },
+                { v: "FREE", l: `Delivery over ${formatKes(FREE_DELIVERY_THRESHOLD_KES)}` },
               ].map((s) => (
                 <div key={s.l} className="bg-[#AFFF00] text-[#121212] p-3">
                   <p className="font-black text-sm">{s.v}</p>
@@ -245,7 +247,7 @@ function ShopContent() {
           {/* mobile search */}
           <div className="w-full sm:hidden relative">
             <Search className="w-4 h-4 text-white/30 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search flavour, pack..." className="w-full bg-white/5 border border-white/10 pl-9 pr-3 py-2 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
+            <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search flavour, pack..." aria-label="Search products" className="w-full bg-white/5 border border-white/10 pl-9 pr-3 py-2 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]" />
           </div>
         </div>
 
@@ -561,13 +563,14 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
           {product.compareAtKes && <span className="text-white/30 font-mono text-xs line-through">{formatKes(product.compareAtKes)}</span>}
           {product.compareAtKes && <span className="text-[#AFFF00] font-mono text-xs">Save {formatKes(product.compareAtKes - product.priceKes)}</span>}
         </div>
-        <p className="text-white/30 font-mono text-[11px] mt-1">Free delivery over KSh 3,000 • 1–2 day Nairobi</p>
+        <p className="text-white/30 font-mono text-[11px] mt-1">Free delivery over {formatKes(FREE_DELIVERY_THRESHOLD_KES)} • 1–2 day Nairobi</p>
 
         <div className="mt-4 flex gap-2">
           <div className="flex-1">
             <AddToCartButton
               product={{ _id: product._id, name: product.name, slug: product.slug, image: product.image, canCount: product.canCount, priceKes: product.priceKes, compareAtKes: product.compareAtKes }}
-              label="Add to cart"
+              label={stock.tone === "out" ? "Out of stock" : "Add to cart"}
+              disabled={stock.tone === "out"}
             />
           </div>
           <button onClick={onQuick} className="md:hidden px-3 py-3 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] hover:border-[#AFFF00]/30 cursor-pointer" aria-label="Quick view">

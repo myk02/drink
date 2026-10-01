@@ -157,7 +157,7 @@ function SupportersWall() {
 
   return (
     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto mt-8">
-      {wall.map((entry, i) => (
+      {wall.map((entry: { _id: string; name: string; amountKes: number; message: string | null }, i: number) => (
         <motion.div
           key={entry._id}
           initial={{ opacity: 0, y: 16 }}

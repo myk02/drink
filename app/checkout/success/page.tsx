@@ -7,20 +7,28 @@ import { useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { CheckCircle2, Clock, AlertTriangle, Loader2 } from "lucide-react"
 import { formatKes } from "@/lib/delivery"
+import { useCart } from "@/components/cart-provider"
 
 function SuccessContent() {
   const searchParams = useSearchParams()
   const reference = searchParams.get("reference") ?? searchParams.get("trxref")
   const verifyPayment = useAction(api.payments.verifyPayment)
+  const { clearCart } = useCart()
   const [email, setEmail] = useState<string | null>(null)
+  const [emailInput, setEmailInput] = useState("")
   const [verifying, setVerifying] = useState(false)
+  const [verifyCount, setVerifyCount] = useState(0)
+  const [failedStatus, setFailedStatus] = useState<"failed" | "review" | null>(null)
   const attemptedRef = useRef<string | null>(null)
+  const clearedRef = useRef<string | null>(null)
 
   useEffect(() => {
     try {
       const last = window.localStorage.getItem("gigi-last-order")
       if (last) {
         const parsed = JSON.parse(last) as { reference?: string; email?: string }
+        // Intentional one-time client hydration (SSR can't read localStorage)
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setEmail(parsed.email ?? null)
       }
     } catch {
@@ -33,18 +41,55 @@ function SuccessContent() {
     reference && email ? { reference, email } : "skip"
   )
 
-  // One automatic verification attempt while the webhook may still be in flight
+  // One automatic verification attempt while the webhook may still be in flight,
+  // plus a couple of timed retries for slow M-Pesa confirmations.
   useEffect(() => {
     if (!reference || !order || order.status !== "pending") return
     if (attemptedRef.current === reference) return
     attemptedRef.current = reference
     setVerifying(true)
     verifyPayment({ reference })
+      .then((res) => {
+        if (res.orderStatus === "failed") setFailedStatus("failed")
+        else if (res.orderStatus === "review") setFailedStatus("review")
+      })
       .catch(() => {
         // Webhook will land eventually; user can retry manually
       })
       .finally(() => setVerifying(false))
   }, [reference, order, verifyPayment])
+
+  useEffect(() => {
+    if (!reference || !order || order.status !== "pending" || failedStatus) return
+    if (verifyCount >= 3) return
+    const t = setTimeout(() => {
+      setVerifying(true)
+      verifyPayment({ reference })
+        .then((res) => {
+          if (res.orderStatus === "failed") setFailedStatus("failed")
+          else if (res.orderStatus === "review") setFailedStatus("review")
+          else setVerifyCount((c) => c + 1)
+        })
+        .catch(() => setVerifyCount((c) => c + 1))
+        .finally(() => setVerifying(false))
+    }, 8000)
+    return () => clearTimeout(t)
+  }, [reference, order, verifyPayment, verifyCount, failedStatus])
+
+  // Empty the cart once THIS reference is confirmed paid. Clears regardless of
+  // localStorage state (cross-device safe) — guarded per-reference so a stray
+  // deep-link visit can't wipe the cart twice.
+  useEffect(() => {
+    if (!reference || !order || order.status !== "paid") return
+    if (clearedRef.current === reference) return
+    clearedRef.current = reference
+    clearCart()
+    try {
+      window.localStorage.removeItem("gigi-last-order")
+    } catch {
+      // ignore
+    }
+  }, [reference, order, clearCart])
 
   if (!reference) {
     return (
@@ -57,6 +102,34 @@ function SuccessContent() {
   }
 
   if (order === undefined) {
+    // Email not yet restored (cleared storage / different device) — ask for it
+    // instead of spinning forever.
+    if (!email) {
+      return (
+        <StateCard icon={<AlertTriangle className="w-10 h-10 text-[#f59e0b]" />} title="Confirm your email" message="Enter the email you used at checkout so we can find your order.">
+          <form
+            className="flex gap-2 justify-center"
+            onSubmit={(e) => {
+              e.preventDefault()
+              const v = emailInput.trim().toLowerCase()
+              if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) setEmail(v)
+            }}
+          >
+            <input
+              type="email"
+              required
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="you@example.com"
+              className="bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
+            />
+            <button type="submit" className="bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm cursor-pointer">
+              Find order
+            </button>
+          </form>
+        </StateCard>
+      )
+    }
     return (
       <div className="flex items-center justify-center py-16">
         <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
@@ -88,7 +161,7 @@ function SuccessContent() {
           Order <span className="text-[#AFFF00]">{order.orderNumber}</span> — thank you! We&apos;re getting your GiGi ready for delivery to {order.deliveryZone}.
         </p>
         <div className="mt-8 bg-white/5 border border-white/10 p-6 text-left space-y-3">
-          {order.items.map((item, i) => (
+          {order.items.map((item: { name: string; quantity: number; canCount: number }, i: number) => (
             <div key={i} className="flex justify-between font-mono text-sm">
               <span className="text-white/70">{item.name} ×{item.quantity}</span>
               <span className="text-white/40">{item.canCount * item.quantity} cans</span>
@@ -110,12 +183,27 @@ function SuccessContent() {
     )
   }
 
-  if (order.status === "cancelled") {
+  if (order.status === "cancelled" || failedStatus === "failed") {
     return (
-      <StateCard icon={<AlertTriangle className="w-10 h-10 text-[#f59e0b]" />} title="Payment not completed" message="This order was cancelled or abandoned before payment went through. Your card/M-Pesa was not charged." >
+      <StateCard icon={<AlertTriangle className="w-10 h-10 text-[#f59e0b]" />} title="Payment not completed" message="This order was cancelled or the payment failed before it went through. Your card/M-Pesa was not charged." >
         <Link href="/shop" className="inline-block bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
           Try Again
         </Link>
+      </StateCard>
+    )
+  }
+
+  if (failedStatus === "review") {
+    return (
+      <StateCard icon={<AlertTriangle className="w-10 h-10 text-[#f59e0b]" />} title="Payment under review" message="Your payment needs a manual check (e.g. amount mismatch). Contact support with your reference and we'll sort it out.">
+        <div className="flex gap-3 justify-center">
+          <Link href="/contact" className="inline-block bg-white/10 text-white px-6 py-3 font-bold text-sm tracking-wide hover:bg-white/20 transition-colors">
+            Contact Support
+          </Link>
+          <Link href="/shop" className="inline-block bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
+            Shop Cases
+          </Link>
+        </div>
       </StateCard>
     )
   }
@@ -131,6 +219,10 @@ function SuccessContent() {
         onClick={() => {
           setVerifying(true)
           verifyPayment({ reference })
+            .then((res) => {
+              if (res.orderStatus === "failed") setFailedStatus("failed")
+              else if (res.orderStatus === "review") setFailedStatus("review")
+            })
             .catch(() => {})
             .finally(() => setVerifying(false))
         }}

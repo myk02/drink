@@ -27,10 +27,30 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
 
+  // Close the mobile menu whenever the route changes (e.g. back/forward).
+  // Link onClick handlers already close it for taps; this covers popstate.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMobileMenuOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false)
+    }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [mobileMenuOpen])
+
   const scrollToHash = (hash: string) => {
     const element = document.querySelector<HTMLElement>(hash)
-    if (element && lenis) {
-      lenis.scrollTo(element, { offset: -100 })
+    if (element) {
+      if (lenis) {
+        lenis.scrollTo(element, { offset: -100 })
+      } else {
+        element.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
     }
     setMobileMenuOpen(false)
   }
@@ -48,6 +68,12 @@ export function Navigation() {
     { label: "Distributors", href: "/distributors", hash: null },
     { label: "Careers", href: "/careers", hash: null },
   ]
+
+  const isLinkActive = (item: (typeof navLinks)[number]) => {
+    if (item.label === "Home") return isHome
+    if (item.href) return pathname.startsWith(item.href)
+    return false
+  }
 
   return (
     <motion.nav
@@ -83,6 +109,7 @@ export function Navigation() {
             <Link
               key={item.label}
               href={item.href ?? "/"}
+              aria-current={isLinkActive(item) ? "page" : undefined}
               onClick={(e) => {
                 if (item.hash) {
                   e.preventDefault()
@@ -94,7 +121,11 @@ export function Navigation() {
             >
               <motion.span
                 className={`text-sm font-medium tracking-wide transition-colors relative cursor-pointer ${
-                  scrolled || !isHome ? "text-white/80 hover:text-[#AFFF00]" : "text-[#121212]/80 hover:text-[#121212]"
+                  isLinkActive(item)
+                    ? "text-[#AFFF00]"
+                    : scrolled || !isHome
+                      ? "text-white/80 hover:text-[#AFFF00]"
+                      : "text-[#121212]/80 hover:text-[#121212]"
                 }`}
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -106,6 +137,7 @@ export function Navigation() {
                 <motion.span
                   className="absolute -bottom-1 left-0 w-full h-0.5 bg-[#AFFF00] origin-left"
                   initial={{ scaleX: 0 }}
+                  animate={{ scaleX: isLinkActive(item) ? 1 : 0 }}
                   whileHover={{ scaleX: 1 }}
                   transition={{ duration: 0.3, ease: EASE }}
                 />
@@ -132,7 +164,11 @@ export function Navigation() {
             <>
               <motion.button
                 onClick={() => openSignIn()}
-                className="bg-white/10 text-white px-4 py-2 rounded-full text-sm font-medium tracking-wide hover:bg-white/20 transition-all"
+                className={`px-4 py-2 rounded-full text-sm font-medium tracking-wide transition-all ${
+                  scrolled || !isHome
+                    ? "bg-white/10 text-white hover:bg-white/20"
+                    : "bg-[#121212]/5 text-[#121212] hover:bg-[#121212]/10"
+                }`}
                 whileHover={{ scale: 1.05 }}
               >
                 Sign In
@@ -168,6 +204,8 @@ export function Navigation() {
             className="p-2"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             whileTap={{ scale: 0.9 }}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
           >
             <AnimatePresence mode="wait">
               {mobileMenuOpen ? (

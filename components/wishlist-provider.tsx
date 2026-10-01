@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore } from "react"
+import { createLocalStorageStore } from "@/lib/local-storage-store"
 
 interface WishlistContextValue {
   ids: Set<string>
@@ -13,32 +14,33 @@ interface WishlistContextValue {
 const WishlistContext = createContext<WishlistContextValue | null>(null)
 const STORAGE_KEY = "gigi-wishlist-v1"
 
+function parseStoredWishlist(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null
+  const ids = raw.filter((id): id is string => typeof id === "string")
+  return ids
+}
+
+const wishlistStore = createLocalStorageStore<string[]>(
+  STORAGE_KEY,
+  parseStoredWishlist,
+  []
+)
+
+const emptySubscribe = () => () => {}
+
 export function WishlistProvider({ children }: { children: React.ReactNode }) {
-  const [ids, setIds] = useState<Set<string>>(new Set())
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) setIds(new Set(JSON.parse(raw) as string[]))
-    } catch {}
-    setHydrated(true)
-  }, [])
-
-  useEffect(() => {
-    if (!hydrated) return
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]))
-    } catch {}
-  }, [ids, hydrated])
+  const storedIds = useSyncExternalStore(
+    wishlistStore.subscribe,
+    wishlistStore.getSnapshot,
+    wishlistStore.getServerSnapshot
+  )
+  const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false)
+  const ids = useMemo(() => new Set(storedIds), [storedIds])
 
   const toggle = useCallback((id: string) => {
-    setIds((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+    const current = wishlistStore.get()
+    const next = current.includes(id) ? current.filter((v) => v !== id) : [...current, id]
+    wishlistStore.set(next)
   }, [])
 
   const isWishlisted = useCallback((id: string) => ids.has(id), [ids])

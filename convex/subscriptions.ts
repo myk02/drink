@@ -113,7 +113,7 @@ export const handleChargeSuccess = internalMutation({
     const email = args.email.trim().toLowerCase()
 
     // 1) Explicit mapping via our own checkout reference
-    let sub =
+    const sub =
       (await ctx.db
         .query("subscriptions")
         .withIndex("by_pendingReference", (q) => q.eq("pendingReference", args.reference))
@@ -259,6 +259,7 @@ export const setLocalStatus = internalMutation({
 // ---------- customer-facing (auth-guarded via Clerk identity) ----------
 
 // Thanks-page polling: most recent subscription touched in the last 45 min.
+// Extended to 6h so slow webhooks / revisits still resolve; returns latest status.
 export const getRecentForEmail = query({
   args: { email: v.string() },
   handler: async (ctx, args) => {
@@ -267,7 +268,7 @@ export const getRecentForEmail = query({
       .withIndex("by_email", (q) => q.eq("email", args.email.trim().toLowerCase()))
       .collect()
     const latest = rows.sort((a, b) => b.startedAt - a.startedAt)[0]
-    if (!latest || Date.now() - latest.startedAt > 45 * 60 * 1000) return null
+    if (!latest || Date.now() - latest.startedAt > 6 * 60 * 60 * 1000) return null
     return { status: latest.status, planSlug: latest.planSlug }
   },
 })
@@ -289,7 +290,9 @@ export const getMySubscription = query({
       .withIndex("by_email", (q) => q.eq("email", email))
       .collect()
     const sub = rows.sort((a, b) => b.startedAt - a.startedAt)[0]
-    if (!sub || sub.status === "cancelled") return { subscription: null }
+    // Return cancelled subs too (with history) so members can see past billing
+    // instead of a misleading "not in club yet".
+    if (!sub) return { subscription: null }
 
     const plan = await ctx.db
       .query("plans")

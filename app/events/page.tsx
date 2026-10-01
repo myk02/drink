@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useSyncExternalStore, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { ClientOnly } from "@/components/client-only"
 import { SITE_URL } from "@/lib/site"
 import { MOCK_EVENTS, type GiGiEvent, AREAS, googleCalendarUrl } from "@/lib/events-data"
+import type { Id } from "@/convex/_generated/dataModel"
 import {
   ArrowLeft,
   ArrowRight,
@@ -19,24 +20,17 @@ import {
   CalendarCheck,
   CalendarDays,
   MapPin,
-  Clock,
   Users,
   Search,
-  Filter,
   Grid3X3,
   List,
   Map,
   Bookmark,
   BookmarkCheck,
   Share2,
-  Star,
-  Zap,
   Eye,
   Check,
   X,
-  Thermometer,
-  Megaphone,
-  PartyPopper,
   Sparkles,
   ChevronDown,
   CalendarPlus,
@@ -44,8 +38,22 @@ import {
   Award,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { createLocalStorageStore } from "@/lib/local-storage-store"
 
 // --- Config ---
+
+// localStorage-backed store: hydration-safe, cross-tab synced, and no
+// setState-in-effect cascades (React-recommended external store pattern).
+// Stored as string[] (JSON-safe) — Set<string> would serialize to "{}".
+function parseStoredBookmarks(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null
+  return raw.filter((id): id is string => typeof id === "string")
+}
+const bookmarkStore = createLocalStorageStore<string[]>(
+  "gigi-event-bookmarks",
+  parseStoredBookmarks,
+  []
+)
 
 const categories = [
   { value: "all", label: "All", icon: Sparkles, href: "/events", color: "#AFFF00" },
@@ -91,21 +99,15 @@ const faqs = [
 ]
 
 function useBookmarks() {
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set())
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("gigi-event-bookmarks")
-      if (raw) setBookmarks(new Set(JSON.parse(raw)))
-    } catch {}
-  }, [])
+  const stored = useSyncExternalStore(
+    bookmarkStore.subscribe,
+    bookmarkStore.getSnapshot,
+    bookmarkStore.getServerSnapshot
+  )
+  const bookmarks = useMemo(() => new Set(stored), [stored])
   const toggle = (id: string) => {
-    setBookmarks((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      localStorage.setItem("gigi-event-bookmarks", JSON.stringify([...next]))
-      return next
-    })
+    const current = bookmarkStore.get()
+    bookmarkStore.set(current.includes(id) ? current.filter((v) => v !== id) : [...current, id])
   }
   return { bookmarks, toggle }
 }
@@ -129,10 +131,25 @@ function EventsContent() {
   const [formPhone, setFormPhone] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Modal UX: Escape to close + lock body scroll while open.
+  useEffect(() => {
+    if (!activeModal) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveModal(null)
+    }
+    window.addEventListener("keydown", onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prev
+    }
+  }, [activeModal])
+
   // Merge: prefer convex if has data, else mock
   const allEvents: GiGiEvent[] = useMemo(() => {
     if (convexEvents && convexEvents.length > 0) {
-      return convexEvents.map((e: any) => ({
+      return convexEvents.map((e: { _id: string; title: string; description: string; date: string; time: string; location: string; category: GiGiEvent["category"]; status: GiGiEvent["status"]; capacity: number; registered: number; image?: string | null }) => ({
         _id: e._id,
         title: e.title,
         description: e.description,
@@ -171,7 +188,6 @@ function EventsContent() {
     }
     if (dateFilter === "month") {
       const now = new Date()
-      const month = new Date(now.getFullYear(), now.getMonth() + 1, 0)
       out = out.filter((e) => {
         const d = new Date(e.date)
         return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
@@ -196,8 +212,12 @@ function EventsContent() {
         return
       } catch {}
     }
-    await navigator.clipboard.writeText(url)
-    toast.success("Link copied")
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success("Link copied")
+    } catch {
+      toast.error("Couldn't copy link — copy the URL manually")
+    }
   }
 
   const handleRegister = async (ev: GiGiEvent) => {
@@ -212,14 +232,16 @@ function EventsContent() {
     }
     setIsSubmitting(true)
     try {
-      // If mock id, simulate; if convex id, call mutation
+      // Demo seed events (evt_*) aren't in the DB yet — keep the signup
+      // locally so the flow never shows a fake "success" for a real booking.
       if (ev._id.startsWith("evt_")) {
         await new Promise((r) => setTimeout(r, 600))
+        toast.success("You're on the list! (Demo event — real booking opens soon.)")
       } else {
-        await registerMutation({ eventId: ev._id as any, name: formName.trim(), email: formEmail.trim().toLowerCase(), phone: formPhone.trim() || undefined })
+        await registerMutation({ eventId: ev._id as Id<"events">, name: formName.trim(), email: formEmail.trim().toLowerCase(), phone: formPhone.trim() || undefined })
+        toast.success("You're in! QR + reminder coming via email.")
       }
       setRegisteredIds((s) => new Set(s).add(ev._id))
-      toast.success("You're in! QR + reminder coming via email.")
       setActiveModal(null)
       setFormName("")
       setFormEmail("")
@@ -229,6 +251,13 @@ function EventsContent() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const openModal = (ev: GiGiEvent) => {
+    setFormName("")
+    setFormEmail("")
+    setFormPhone("")
+    openModal(ev)
   }
 
   const jsonLd = {
@@ -379,7 +408,7 @@ function EventsContent() {
               {categories.map((c) => (
                 <button
                   key={c.value}
-                  onClick={() => setCat(c.value as any)}
+                  onClick={() => setCat(c.value)}
                   className={`px-3 py-1.5 font-mono text-xs font-bold border flex items-center gap-1.5 cursor-pointer transition-colors ${
                     cat === c.value ? "bg-[#AFFF00] text-[#121212] border-[#AFFF00]" : "bg-[#121212] text-white/60 border-white/10 hover:border-[#AFFF00]/30 hover:text-white"
                   }`}
@@ -392,7 +421,7 @@ function EventsContent() {
               <div className="relative">
                 <select
                   value={area}
-                  onChange={(e) => setArea(e.target.value as any)}
+                  onChange={(e) => setArea(e.target.value as (typeof AREAS)[number])}
                   className="bg-[#121212] border border-white/10 text-white font-mono text-xs pl-3 pr-8 py-2 focus:outline-none focus:border-[#AFFF00] appearance-none"
                 >
                   {AREAS.map((a) => (
@@ -406,7 +435,7 @@ function EventsContent() {
               <div className="relative">
                 <select
                   value={dateFilter}
-                  onChange={(e) => setDateFilter(e.target.value as any)}
+                  onChange={(e) => setDateFilter(e.target.value as (typeof dateFilters)[number]["value"])}
                   className="bg-[#121212] border border-white/10 text-white font-mono text-xs pl-3 pr-8 py-2 focus:outline-none focus:border-[#AFFF00] appearance-none"
                 >
                   {dateFilters.map((d) => (
@@ -420,7 +449,7 @@ function EventsContent() {
               <div className="relative">
                 <select
                   value={sort}
-                  onChange={(e) => setSort(e.target.value as any)}
+                  onChange={(e) => setSort(e.target.value as "soonest" | "popular")}
                   className="bg-[#121212] border border-white/10 text-white font-mono text-xs pl-3 pr-8 py-2 focus:outline-none focus:border-[#AFFF00] appearance-none"
                 >
                   <option value="soonest" className="bg-[#121212]">
@@ -496,7 +525,7 @@ function EventsContent() {
                 </div>
                 <div className="mt-6 flex flex-wrap gap-2">
                   <button
-                    onClick={() => setActiveModal(featured)}
+                    onClick={() => openModal(featured)}
                     className="bg-[#AFFF00] text-[#121212] px-5 py-3 font-black text-sm inline-flex items-center gap-2 hover:opacity-90"
                   >
                     Register free <ArrowRight className="w-4 h-4" />
@@ -619,7 +648,7 @@ function EventsContent() {
                             ) : full ? (
                               <div className="flex-1 bg-white/5 text-white/40 font-mono text-xs text-center py-2.5">Fully booked</div>
                             ) : (
-                              <button onClick={() => setActiveModal(ev)} className="flex-1 bg-[#AFFF00] text-[#121212] font-black text-xs py-2.5 hover:opacity-90">Register free</button>
+                              <button onClick={() => openModal(ev)} className="flex-1 bg-[#AFFF00] text-[#121212] font-black text-xs py-2.5 hover:opacity-90">Register free</button>
                             )}
                             <a href={googleCalendarUrl(ev)} target="_blank" className="px-3 py-2.5 bg-white/5 border border-white/10 text-white/60 hover:text-[#AFFF00] hover:border-[#AFFF00]/30 flex items-center justify-center">
                               <CalendarPlus className="w-4 h-4" />
@@ -639,7 +668,7 @@ function EventsContent() {
                           <h3 className="text-white font-bold text-sm mt-1 truncate">{ev.title}</h3>
                           <p className="text-white/40 font-mono text-xs flex items-center gap-2 mt-1"><MapPin className="w-3 h-3" /> {ev.location} • {ev.time}</p>
                           <div className="mt-2 flex items-center gap-2">
-                            {isRegistered ? <span className="text-[#AFFF00] font-mono text-xs">✓ Registered</span> : full ? <span className="text-white/30 font-mono text-xs">Full</span> : <button onClick={() => setActiveModal(ev)} className="text-[#AFFF00] font-mono text-xs hover:underline">Register →</button>}
+                            {isRegistered ? <span className="text-[#AFFF00] font-mono text-xs">✓ Registered</span> : full ? <span className="text-white/30 font-mono text-xs">Full</span> : <button onClick={() => openModal(ev)} className="text-[#AFFF00] font-mono text-xs hover:underline">Register →</button>}
                             <button onClick={() => toggleBookmark(ev._id)} className="ml-auto text-white/30 hover:text-[#AFFF00]"><Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-[#AFFF00] text-[#AFFF00]" : ""}`} /></button>
                             <button onClick={() => share(ev)} className="text-white/30 hover:text-white"><Share2 className="w-4 h-4" /></button>
                           </div>
@@ -745,8 +774,8 @@ function EventsContent() {
       {/* Register modal */}
       <AnimatePresence>
         {activeModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-[#121212]/90 backdrop-blur flex items-center justify-center p-4">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="bg-[#1a1a1a] border border-white/10 w-full max-w-lg p-6 relative max-h-[90vh] overflow-auto">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setActiveModal(null)} className="fixed inset-0 z-50 bg-[#121212]/90 backdrop-blur flex items-center justify-center p-4">
+            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} onClick={(e) => e.stopPropagation()} className="bg-[#1a1a1a] border border-white/10 w-full max-w-lg p-6 relative max-h-[90vh] overflow-auto">
               <button onClick={() => setActiveModal(null)} className="absolute top-3 right-3 text-white/40 hover:text-white">
                 <X className="w-5 h-5" />
               </button>

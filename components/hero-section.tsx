@@ -7,8 +7,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useAuth, useClerk } from "@clerk/nextjs"
 
-const smoothConfig = { damping: 50, stiffness: 400 }
-
 const fadeUpVariants: Variants = {
   hidden: { opacity: 0, y: 40 },
   visible: (i: number) => ({
@@ -117,13 +115,9 @@ export function HeroSection() {
                   className="inline-block"
                 >
                   FUEL YOUR
-                </motion.span>
-              </motion.h1>
-              <motion.h1
-                style={{ x: textX2 }}
-                className="text-5xl md:text-7xl font-black tracking-tighter text-[#121212] leading-[0.9]"
-              >
+                </motion.span>{" "}
                 <motion.span
+                  style={{ x: textX2 }}
                   variants={fadeUpVariants}
                   initial="hidden"
                   animate="visible"
@@ -158,7 +152,8 @@ export function HeroSection() {
                   if (isSignedIn) router.push("/flavours")
                   else openSignUp()
                 }}
-                className="bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 group relative overflow-hidden"
+                aria-label={isSignedIn ? "Shop all flavours" : "Sign up and save 25 percent"}
+                className="bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide flex items-center gap-2 group relative overflow-hidden cursor-pointer"
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -177,6 +172,7 @@ export function HeroSection() {
                   initial={{ x: 0 }}
                   whileHover={{ x: 4 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  aria-hidden="true"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                 </motion.svg>

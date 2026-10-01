@@ -150,6 +150,8 @@ export function Footer() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
+                aria-label="Email address for newsletter"
+                autoComplete="email"
                 disabled={isSubmitting}
                 className="w-full bg-white/5 border-2 border-white/20 rounded-xl px-4 py-3 text-white placeholder:text-white/40 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-all duration-300"
                 whileFocus={{ borderColor: "#AFFF00" }}

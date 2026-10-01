@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
@@ -10,6 +11,21 @@ import { formatKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
 
 export function CartDrawer() {
   const { items, isOpen, closeCart, setQuantity, removeItem, subtotalKes, totalCount } = useCart()
+
+  // Close on Escape and lock body scroll while the drawer is open.
+  useEffect(() => {
+    if (!isOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeCart()
+    }
+    window.addEventListener("keydown", onKey)
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      window.removeEventListener("keydown", onKey)
+      document.body.style.overflow = prevOverflow
+    }
+  }, [isOpen, closeCart])
 
   return (
     <AnimatePresence>
@@ -23,6 +39,9 @@ export function CartDrawer() {
             className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
           />
           <motion.aside
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shopping cart"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -71,7 +90,7 @@ export function CartDrawer() {
                         exit={{ opacity: 0, x: 40 }}
                         className="flex gap-4 bg-white/5 border border-white/10 p-3"
                       >
-                        <Link href="/shop" onClick={closeCart} className="shrink-0">
+                        <Link href={`/shop/${item.slug}`} onClick={closeCart} className="shrink-0">
                           <div className="relative w-16 h-20 bg-white/5 overflow-hidden">
                             <Image src={item.image} alt={item.name} fill sizes="64px" className="object-contain p-1" />
                           </div>
@@ -101,7 +120,13 @@ export function CartDrawer() {
                               </button>
                               <span className="text-white font-mono text-sm w-5 text-center">{item.quantity}</span>
                               <button
-                                onClick={() => setQuantity(item.productId, item.quantity + 1)}
+                                onClick={() => {
+                                  if (item.quantity >= 20) {
+                                    toast.info("Max 20 per item")
+                                    return
+                                  }
+                                  setQuantity(item.productId, item.quantity + 1)
+                                }}
                                 className="text-white/60 hover:text-[#AFFF00] transition-colors cursor-pointer p-1"
                                 aria-label="Increase quantity"
                               >
@@ -162,6 +187,7 @@ export function AddToCartButton({
   product,
   className = "",
   label,
+  disabled = false,
 }: {
   product: {
     _id: string
@@ -174,10 +200,12 @@ export function AddToCartButton({
   }
   className?: string
   label?: string
+  disabled?: boolean
 }) {
   const { addItem, openCart } = useCart()
 
   const handleAdd = () => {
+    if (disabled) return
     addItem({
       productId: product._id,
       slug: product.slug,
@@ -195,9 +223,10 @@ export function AddToCartButton({
   return (
     <button
       onClick={handleAdd}
+      disabled={disabled}
       className={
         className ||
-        "w-full bg-[#AFFF00] text-[#121212] px-4 py-3 font-bold text-sm tracking-wide relative overflow-hidden hover:opacity-90 transition-opacity cursor-pointer"
+        "w-full bg-[#AFFF00] text-[#121212] px-4 py-3 font-bold text-sm tracking-wide relative overflow-hidden hover:opacity-90 transition-opacity cursor-pointer disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed"
       }
     >
       {label ?? `Add to Cart · ${formatKes(product.priceKes)}`}

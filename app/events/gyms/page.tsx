@@ -7,6 +7,9 @@ import Link from "next/link"
 import { ArrowLeft, MapPin, Dumbbell, CheckCircle, XCircle } from "lucide-react"
 import { useState, useMemo } from "react"
 import { ClientOnly } from "@/components/client-only"
+import type { Doc } from "@/convex/_generated/dataModel"
+
+type Gym = Doc<"gyms">
 
 function GymsContent() {
   const gyms = useQuery(api.gyms.getAll)
@@ -14,10 +17,10 @@ function GymsContent() {
 
   const areas = useMemo(() => {
     if (!gyms) return []
-    return Array.from(new Set(gyms.map((g) => g.area))).sort()
+    return Array.from(new Set(gyms.map((g: Gym) => g.area))).sort()
   }, [gyms])
 
-  const filtered = activeArea ? gyms?.filter((g) => g.area === activeArea) : gyms
+  const filtered = activeArea ? gyms?.filter((g: Gym) => g.area === activeArea) : gyms
 
   return (
     <div className="min-h-screen bg-[#121212]">
@@ -52,7 +55,7 @@ function GymsContent() {
               All Areas ({gyms.length})
             </button>
             {areas.map((area) => {
-              const count = gyms.filter((g) => g.area === area).length
+              const count = gyms.filter((g: Gym) => g.area === area).length
               return (
                 <button
                   key={area}
@@ -76,8 +79,15 @@ function GymsContent() {
           </div>
         )}
 
+        {gyms && gyms.length === 0 && (
+          <div className="text-center py-16 bg-white/5 border border-white/10">
+            <p className="text-white font-bold">No partner gyms listed yet</p>
+            <p className="text-white/40 font-mono text-sm mt-1">New gyms join weekly — check back soon or partner with us below.</p>
+          </div>
+        )}
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered?.map((gym, index) => (
+          {filtered?.map((gym: Gym, index: number) => (
             <motion.div
               key={gym._id}
               initial={{ opacity: 0, y: 30 }}
@@ -122,11 +132,12 @@ function GymsContent() {
             Partner with GiGi to offer your members clean energy. We provide stocked coolers, branding, and promotional support.
           </p>
           <Link
-            href="/events/organizers"
+            href="/contact"
             className="inline-flex items-center gap-2 bg-[#AFFF00] text-[#121212] px-6 py-3 rounded-full font-bold text-sm tracking-wide"
           >
             Partner With Us
           </Link>
+          <p className="text-white/30 font-mono text-xs mt-4">Gym or studio? Mention your gym name + area — we reply within 48h.</p>
         </motion.div>
       </div>
     </div>

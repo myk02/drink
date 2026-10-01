@@ -1,6 +1,5 @@
 import { v } from "convex/values"
 import { internalMutation, query } from "./_generated/server"
-import { requireAdmin } from "./admin"
 
 export const createPendingOrder = internalMutation({
   args: {
@@ -62,6 +61,17 @@ export const markPaidByReference = internalMutation({
       paystackStatus: "success",
       paidAt: Date.now(),
     })
+
+    // Decrement stock for ordered products that track inventory. Skips docs
+    // that were deleted between order creation and payment.
+    for (const item of order.items) {
+      const product = await ctx.db.get(item.productId)
+      if (!product || product.stock === undefined) continue
+      await ctx.db.patch(product._id, {
+        stock: Math.max(0, product.stock - item.quantity),
+      })
+    }
+
     return { outcome: "paid" as const }
   },
 })
@@ -94,6 +104,7 @@ export const getForCustomer = query({
       status: order.status,
       items: order.items.map((i) => ({ name: i.name, quantity: i.quantity, canCount: i.canCount })),
       subtotalKes: order.subtotalKes,
+      memberDiscountKes: order.memberDiscountKes ?? null,
       deliveryFeeKes: order.deliveryFeeKes,
       totalKes: order.totalKes,
       deliveryZone: order.deliveryZone,

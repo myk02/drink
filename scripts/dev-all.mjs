@@ -1,4 +1,4 @@
-const { spawn } = require("child_process");
+import { spawn } from "node:child_process";
 
 const procs = [
   spawn("npx", ["convex", "dev"], { shell: true, stdio: "inherit" }),

@@ -133,9 +133,10 @@ function InquiryFormInner({ category, messagePlaceholder = "Your message...", sh
       </div>
       <textarea
         required
+        minLength={10}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
-        placeholder={messagePlaceholder}
+        placeholder={`${messagePlaceholder} (min 10 characters)`}
         rows={3}
         disabled={isSubmitting}
         className={`${inputClass} resize-none`}

@@ -7,8 +7,12 @@ import { SITE_URL } from "@/lib/site"
 import { CareerApplicationForm } from "@/components/career-application-form"
 import { CopyLinkButton } from "@/components/copy-link-button"
 
+// Build-time only: keeps JSON-LD validThrough pure during render. Static pages
+// re-validate this date on each deploy/rebuild.
+const VALID_THROUGH_DATE = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+
 export function generateStaticParams() {
-  return ROLES.map((r) => ({ slug: r.slug }))
+  return [...ROLES.map((r) => ({ slug: r.slug })), { slug: "general" }]
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -33,16 +37,41 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function CareerRolePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
+  // "general" is offered by the application form — render a general-application
+  // page instead of 404ing.
+  if (slug === "general") {
+    const { CareerApplicationForm: GeneralForm } = await import("@/components/career-application-form")
+    return (
+      <div className="min-h-screen bg-[#121212]">
+        <div className="max-w-3xl mx-auto px-6 py-10 md:py-12 pb-20">
+          <Link href="/careers" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm mb-6 transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Careers
+          </Link>
+          <h1 className="text-3xl md:text-5xl font-black text-white tracking-tighter leading-[0.95]">GENERAL APPLICATION</h1>
+          <p className="text-white/50 font-mono text-sm mt-4 leading-relaxed">
+            No perfect role listed? Tell us what you do best — we keep standout general applications for 6 months and reach out first.
+          </p>
+          <div className="mt-8 bg-white/5 border border-white/10 p-6 md:p-8">
+            <GeneralForm defaultRoleSlug="general" />
+          </div>
+        </div>
+      </div>
+    )
+  }
   const role = getRoleBySlug(slug)
   if (!role) notFound()
 
+  // validThrough is computed at module scope (pure render) and rotates daily
+  // via the statically-generated page rebuild schedule.
+  const validThrough = VALID_THROUGH_DATE
   const jobPostingLd = {
     "@context": "https://schema.org",
     "@type": "JobPosting",
     title: role.title,
-    description: `${role.summary}\n\nResponsibilities:\n${role.responsibilities.join("\n")}\n\nRequirements:\n${role.requirements.join("\n")}\n\nNice to have:\n${role.niceToHave.join("\n")}`,
+    description: `${role.summary}\n\nResponsibilities:\n${role.responsibilities.join("\n")}\n\nNice to have:\n${role.niceToHave.join("\n")}\n\nRequirements:\n${role.requirements.join("\n")}`,
     datePosted: role.postedAt,
-    validThrough: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+    validThrough,
     employmentType: role.employmentType,
     hiringOrganization: {
       "@type": "Organization",

@@ -1,6 +1,7 @@
 "use client"
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react"
+import { createLocalStorageStore } from "@/lib/local-storage-store"
 
 export interface CartItem {
   productId: string
@@ -32,72 +33,85 @@ const CartContext = createContext<CartContextValue | null>(null)
 const STORAGE_KEY = "gigi-cart-v1"
 const MAX_QTY_PER_ITEM = 20
 
-function readStoredCart(): CartItem[] {
-  if (typeof window === "undefined") return []
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as unknown
-    if (!Array.isArray(parsed)) return []
-    return parsed.filter(
-      (it): it is CartItem =>
-        typeof it === "object" &&
-        it !== null &&
-        typeof (it as CartItem).productId === "string" &&
-        typeof (it as CartItem).priceKes === "number" &&
-        typeof (it as CartItem).quantity === "number"
-    )
-  } catch {
-    return []
+function parseStoredCart(raw: unknown): CartItem[] | null {
+  if (!Array.isArray(raw)) return null
+  const items: CartItem[] = []
+  for (const it of raw) {
+    if (typeof it !== "object" || it === null) continue
+    const c = it as Partial<CartItem>
+    if (
+      typeof c.productId !== "string" ||
+      typeof c.slug !== "string" ||
+      typeof c.name !== "string" ||
+      typeof c.image !== "string" ||
+      typeof c.priceKes !== "number" ||
+      typeof c.quantity !== "number" ||
+      typeof c.canCount !== "number"
+    ) {
+      continue
+    }
+    if (!Number.isFinite(c.priceKes) || !Number.isFinite(c.quantity) || !Number.isFinite(c.canCount)) continue
+    const quantity = Math.max(1, Math.min(Math.floor(c.quantity), MAX_QTY_PER_ITEM))
+    items.push({
+      productId: c.productId,
+      slug: c.slug,
+      name: c.name,
+      image: c.image,
+      canCount: Math.max(1, Math.floor(c.canCount)),
+      priceKes: Math.max(0, Math.round(c.priceKes)),
+      compareAtKes: typeof c.compareAtKes === "number" && Number.isFinite(c.compareAtKes) ? c.compareAtKes : undefined,
+      quantity,
+    })
   }
+  return items
 }
 
+// The localStorage store is the source of truth for cart items; the drawer's
+// open/closed state stays plain React state (session-only, not persisted).
+const cartStore = createLocalStorageStore<CartItem[]>(STORAGE_KEY, parseStoredCart, [])
+
+function useCartItems(): CartItem[] {
+  return useSyncExternalStore(cartStore.subscribe, cartStore.getSnapshot, cartStore.getServerSnapshot)
+}
+
+const emptySubscribe = () => () => {}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+  const items = useCartItems()
   const [isOpen, setIsOpen] = useState(false)
-  const [hydrated, setHydrated] = useState(false)
-
-  useEffect(() => {
-    setItems(readStoredCart())
-    setHydrated(true)
-  }, [])
-
-  useEffect(() => {
-    if (!hydrated) return
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-    } catch {
-      // storage full/blocked — cart still works in-memory
-    }
-  }, [items, hydrated])
+  // Hydration flag without a setState-in-effect: server snapshot false,
+  // client snapshot true — matches the old `hydrated` contract.
+  const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   const addItem = useCallback((item: Omit<CartItem, "quantity">, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.productId === item.productId)
-      if (existing) {
-        return prev.map((i) =>
+    const next = cartStore
+      .get()
+      .map((i) => i)
+    const existing = next.find((i) => i.productId === item.productId)
+    const updated = existing
+      ? next.map((i) =>
           i.productId === item.productId
             ? { ...i, quantity: Math.min(i.quantity + quantity, MAX_QTY_PER_ITEM) }
             : i
         )
-      }
-      return [...prev, { ...item, quantity: Math.min(quantity, MAX_QTY_PER_ITEM) }]
-    })
+      : [...next, { ...item, quantity: Math.min(quantity, MAX_QTY_PER_ITEM) }]
+    cartStore.set(updated)
   }, [])
 
   const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.productId !== productId))
+    cartStore.set(cartStore.get().filter((i) => i.productId !== productId))
   }, [])
 
   const setQuantity = useCallback((productId: string, quantity: number) => {
-    setItems((prev) =>
+    const prev = cartStore.get()
+    const next =
       quantity <= 0
         ? prev.filter((i) => i.productId !== productId)
         : prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.min(quantity, MAX_QTY_PER_ITEM) } : i))
-    )
+    cartStore.set(next)
   }, [])
 
-  const clearCart = useCallback(() => setItems([]), [])
+  const clearCart = useCallback(() => cartStore.set([]), [])
   const openCart = useCallback(() => setIsOpen(true), [])
   const closeCart = useCallback(() => setIsOpen(false), [])
 
@@ -109,6 +123,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       totalCount,
       subtotalKes,
       isOpen,
+      // True only after client hydration — lets pages show a loader instead of
+      // flashing an empty cart on first paint (SSR snapshot is always []).
       hydrated,
       addItem,
       removeItem,

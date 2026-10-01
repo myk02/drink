@@ -15,8 +15,11 @@ export const submit = mutation({
     const email = args.email.trim().toLowerCase()
     const message = args.message.trim()
     if (!name) throw new Error("Please enter your name")
+    if (name.length > 100) throw new Error("Name is too long")
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Please enter a valid email address")
     if (!message) throw new Error("Please enter a message")
+    if (message.length > 5000) throw new Error("Message is too long — please keep it under 5000 characters")
+    if (message.length < 10) throw new Error("Please write a slightly longer message so we can help")
 
     let userId
     const identity = await ctx.auth.getUserIdentity()

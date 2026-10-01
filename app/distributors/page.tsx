@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import Link from "next/link"
 import Image from "next/image"
 import { useMutation } from "convex/react"
@@ -23,7 +23,6 @@ import {
   ShoppingCart,
   Beer,
   MapPin,
-  Clock,
   BadgeCheck,
   Phone,
   Mail,
@@ -33,13 +32,11 @@ import {
   Check,
   X,
   Star,
-  Zap,
   Eye,
   Thermometer,
   GraduationCap,
   Users,
   FileText,
-  Search,
 } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { ClientOnly } from "@/components/client-only"
@@ -286,7 +283,7 @@ function DistributorsContent() {
       await submit({
         contactName: form.contactName,
         businessName: form.businessName,
-        businessType: form.businessType as any,
+        businessType: form.businessType,
         county: form.county,
         location: form.location,
         outletCount: form.outletCount || undefined,
@@ -674,7 +671,7 @@ Learn more: ${SITE_URL}/distributors`
               { icon: Megaphone, title: "Launch buzz", desc: "Instagram feature, Google Maps push, sampling team on your opening Saturday." },
               { icon: GraduationCap, title: "Staff training", desc: "30-min pitch training: story, flavours, cross-sell. Certificate + trial cans." },
               { icon: Users, title: "Rep on WhatsApp", desc: "Same rep every time — knows your par levels, sorts swaps in one message." },
-              { icon: BadgeCheck, title: "Featured listing", desc: "Appear on gigi.energy/stockists + events pages. Customers find you." },
+              { icon: BadgeCheck, title: "Featured listing", desc: "Get featured on our events pages + Instagram so customers find you. (Stockist directory launching soon.)" },
             ].map((s) => (
               <div key={s.title} className="flex gap-3">
                 <s.icon className="w-5 h-5 text-[#AFFF00] shrink-0 mt-1" />
@@ -822,7 +819,7 @@ Learn more: ${SITE_URL}/distributors`
                   <label className="text-white/60 font-mono text-xs mb-1.5 block">Business type *</label>
                   <select
                     value={form.businessType}
-                    onChange={(e) => setForm({ ...form, businessType: e.target.value as any })}
+                    onChange={(e) => setForm({ ...form, businessType: e.target.value as (typeof businessTypes)[number]["value"] })}
                     className="w-full bg-[#121212] border border-white/10 px-4 py-3 text-white font-mono text-sm focus:outline-none focus:border-[#AFFF00]"
                   >
                     {businessTypes.map((t) => (

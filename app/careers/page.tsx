@@ -37,7 +37,7 @@ const values = [
   { title: "Kenya First", desc: "We're proving a world-class brand can be born in Nairobi — and stay rooted here." },
 ]
 
-const benefitIcons: Record<string, any> = {
+const benefitIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   TrendingUp,
   Heart,
   GraduationCap,
@@ -50,6 +50,8 @@ export default function CareersPage() {
   const [dept, setDept] = useState<(typeof DEPARTMENTS)[number]>("All")
   const [q, setQ] = useState("")
   const [activeRole, setActiveRole] = useState<string | null>(null)
+  // Computed once per mount (not during render) — keeps render pure.
+  const [validThrough] = useState(() => new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
 
   const filtered = useMemo(() => {
     return ROLES.filter((r) => {
@@ -62,7 +64,6 @@ export default function CareersPage() {
     })
   }, [dept, q])
 
-  const validThrough = new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",

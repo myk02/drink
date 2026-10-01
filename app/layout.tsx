@@ -13,14 +13,14 @@ import { Toaster } from "@/components/ui/sonner"
 import { SITE_URL, SITE_NAME, SITE_DESCRIPTION } from "@/lib/site"
 import "./globals.css"
 
-const _inter = Inter({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-sans",
+  variable: "--font-inter",
 })
 
-const _jetbrainsMono = JetBrains_Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
-  variable: "--font-mono",
+  variable: "--font-jetbrains-mono",
 })
 
 export const metadata: Metadata = {
@@ -73,7 +73,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased`}>
+      <body className={`${inter.variable} ${jetbrainsMono.variable} font-sans antialiased`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}

@@ -14,6 +14,9 @@ export default function ConvexProviderInner({ children }: { children: ReactNode 
   }, [])
 
   if (!convex) {
+    if (process.env.NODE_ENV === "development") {
+      console.warn("[convex] NEXT_PUBLIC_CONVEX_URL is missing — running without backend data.")
+    }
     return <>{children}</>
   }
 

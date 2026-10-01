@@ -6,13 +6,10 @@ import Image from "next/image"
 import { motion } from "framer-motion"
 import { useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import type { Doc } from "@/convex/_generated/dataModel"
 import { ArrowLeft, Check, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { ClientOnly } from "@/components/client-only"
 import { formatKes } from "@/lib/delivery"
-
-type Plan = Doc<"plans">
 
 const inputClass =
   "w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
@@ -120,7 +117,7 @@ function SubscribeContent() {
             WHAT YOU GET · {selected.name.toUpperCase()}
           </h2>
           <ul className="space-y-3 mb-8">
-            {selected.perks.map((perk) => (
+            {selected.perks.map((perk: string) => (
               <li key={perk} className="flex items-start gap-3 text-white/70 font-mono text-sm">
                 <Check className="w-4 h-4 text-[#AFFF00] shrink-0 mt-0.5" />
                 {perk}
