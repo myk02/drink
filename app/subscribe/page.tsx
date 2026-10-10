@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -21,16 +21,27 @@ function SubscribeContent() {
   const [form, setForm] = useState({ name: "", email: "", phone: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [redirecting, setRedirecting] = useState(false)
+  const [loadTimedOut, setLoadTimedOut] = useState(false)
+  const submittedRef = useRef(false)
+  useEffect(() => {
+    if (plans !== undefined) return
+    const t = window.setTimeout(() => setLoadTimedOut(true), 15000)
+    return () => window.clearTimeout(t)
+  }, [plans])
 
   const sorted = useMemo(() => {
     if (!plans) return undefined
     return [...plans].sort((a, b) => a.sortOrder - b.sortOrder)
   }, [plans])
 
-  const selected = sorted?.find((p) => p.slug === (selectedSlug ?? sorted[0]?.slug))
+  // Require an explicit plan click — never auto-charge the first plan.
+  const selected = sorted?.find((p) => p.slug === selectedSlug) ?? null
 
   const handleSubscribe = async () => {
     if (!selected || isSubmitting) return
+    // Idempotency: ignore double-clicks / replays for this submit attempt.
+    if (submittedRef.current) return
+    submittedRef.current = true
     setIsSubmitting(true)
     try {
       const result = await startSubscription({
@@ -52,6 +63,7 @@ function SubscribeContent() {
       window.location.assign(result.authorizationUrl)
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
+      submittedRef.current = false
       setIsSubmitting(false)
     }
   }
@@ -69,8 +81,8 @@ function SubscribeContent() {
 
   return (
     <>
-      <div className="grid md:grid-cols-2 gap-6 mb-12">
-        {!sorted && (
+      <div className="grid md:grid-cols-2 gap-6 mb-12" role="radiogroup" aria-label="Membership plans">
+        {!sorted && !loadTimedOut && (
           <div className="col-span-2 flex items-center justify-center py-16" role="status" aria-label="Loading membership plans">
             <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
             <span className="sr-only">Loading membership plans…</span>
@@ -85,6 +97,15 @@ function SubscribeContent() {
             </Link>
           </div>
         )}
+        {!sorted && loadTimedOut && (
+          <div className="col-span-2 text-center py-16 bg-white/5 border border-white/10">
+            <p className="text-white font-bold">Can&apos;t reach memberships</p>
+            <p className="text-white/40 font-mono text-sm mt-1">Check your connection and retry, or contact us for help.</p>
+            <button onClick={() => window.location.reload()} className="inline-block mt-6 bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm cursor-pointer">
+              Retry
+            </button>
+          </div>
+        )}
         {sorted?.map((plan, i) => {
           const isSelected = selected?.slug === plan.slug
           return (
@@ -94,6 +115,9 @@ function SubscribeContent() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.1 }}
               onClick={() => setSelectedSlug(plan.slug)}
+              role="radio"
+              aria-checked={isSelected}
+              aria-label={`${plan.name} — ${formatKes(plan.amountKes)} per month`}
               className={`relative text-left bg-white/5 backdrop-blur-sm rounded-2xl border p-8 transition-all duration-300 cursor-pointer ${
                 isSelected
                   ? "border-[#AFFF00] shadow-[0_0_30px_rgba(175,255,0,0.15)]"
@@ -116,6 +140,11 @@ function SubscribeContent() {
         })}
       </div>
 
+      {sorted && sorted.length > 0 && !selected && (
+        <p className="text-center text-white/40 font-mono text-sm mb-8" role="status">
+          Select a plan above to continue — nothing is charged until you confirm at secure checkout.
+        </p>
+      )}
       {selected && (
         <motion.div
           key={selected.slug}

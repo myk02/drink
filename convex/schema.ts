@@ -172,6 +172,19 @@ export default defineSchema({
     isActive: v.boolean(),
   }).index("by_email", ["email"]),
 
+  productReviews: defineTable({
+    productId: v.id("products"),
+    productSlug: v.string(),
+    name: v.string(),
+    rating: v.number(),
+    title: v.optional(v.string()),
+    body: v.string(),
+    isApproved: v.boolean(),
+    createdAt: v.number(),
+  })
+    .index("by_product", ["productId"])
+    .index("by_slug", ["productSlug"]),
+
   gyms: defineTable({
     name: v.string(),
     location: v.string(),

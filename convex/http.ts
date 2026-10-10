@@ -52,7 +52,10 @@ function str(value: unknown): string | undefined {
 
 const paystackWebhook = httpAction(async (ctx, req) => {
   const secretKey = process.env.PAYSTACK_SECRET_KEY
-  if (!secretKey) return new Response(null, { status: 200 })
+  if (!secretKey) {
+    console.error("[paystack-webhook] PAYSTACK_SECRET_KEY is missing — orders/subs will stay pending.")
+    return new Response("Payments not configured", { status: 500 })
+  }
 
   const rawBody = await req.text()
   const isValid = await verifyPaystackSignature(rawBody, req.headers.get("x-paystack-signature"), secretKey)
@@ -115,11 +118,14 @@ const paystackWebhook = httpAction(async (ctx, req) => {
         const subscriptionCode = str(data?.subscription_code) ?? str(data?.subscription?.subscription_code)
         const emailToken = str(data?.email_token)
         if (!email || !subscriptionCode) break
+        // Skip empty email tokens — storing "" would bypass Paystack
+        // pause/cancel guards that treat falsy tokens as "no managed sub".
+        if (!emailToken) break
         await ctx.runMutation(internal.subscriptions.attachSubscriptionCodes, {
           email,
           planSlugHint: undefined,
           subscriptionCode,
-          emailToken: emailToken ?? "",
+          emailToken,
           customerCode: str(data?.customer?.customer_code),
         })
         break

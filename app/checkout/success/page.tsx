@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { useQuery, useAction } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { CheckCircle2, Clock, AlertTriangle, Loader2 } from "lucide-react"
+import { toast } from "sonner"
 import { formatKes } from "@/lib/delivery"
 import { useCart } from "@/components/cart-provider"
 
@@ -121,6 +122,8 @@ function SuccessContent() {
                 } catch {
                   // ignore
                 }
+              } else {
+                toast.error("Enter a valid email address")
               }
             }}
           >

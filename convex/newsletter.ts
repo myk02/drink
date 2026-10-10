@@ -18,7 +18,8 @@ export const subscribe = mutation({
       if (!existing.isActive) {
         await ctx.db.patch(existing._id, { isActive: true, subscribedAt: Date.now() })
       }
-      return { alreadySubscribed: true }
+      // Generic success — never reveal whether an email was already listed.
+      return { success: true }
     }
 
     await ctx.db.insert("newsletterSubscribers", {
@@ -26,6 +27,6 @@ export const subscribe = mutation({
       subscribedAt: Date.now(),
       isActive: true,
     })
-    return { alreadySubscribed: false }
+    return { success: true }
   },
 })

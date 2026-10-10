@@ -53,6 +53,8 @@ export function Footer() {
         { label: "Home", href: "/" },
         { label: "Flavours", href: "/flavours" },
         { label: "Events", href: "/events" },
+        { label: "Find in Stores", href: "/stores" },
+        { label: "FAQ", href: "/faq" },
         { label: "Distributors", href: "/distributors" },
         { label: "Partner Gyms", href: "/events/gyms" },
       ],
@@ -230,8 +232,8 @@ function NewsletterForm() {
     setIsSubmitting(true)
     try {
       const result = await subscribe({ email })
-      if (result.alreadySubscribed) toast.info("You're already on the list — energy's coming.")
-      else toast.success("You're in! Welcome to the GiGi crew.")
+      void result
+      toast.success("You're in! Welcome to the GiGi crew.")
       setEmail("")
       setJustSubscribed(true)
     } catch (err) {

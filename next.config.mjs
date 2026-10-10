@@ -8,7 +8,8 @@ const nextConfig = {
   images: {
     // Optimization enabled: Vercel serves AVIF/WebP at correct sizes.
     // `sharp` is installed so local production builds work too.
-    formats: ["image/webp"],
+    formats: ["image/avif", "image/webp"],
+    remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
 }
 

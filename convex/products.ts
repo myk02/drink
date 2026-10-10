@@ -26,6 +26,8 @@ export const getBySlug = query({
 export const getById = query({
   args: { id: v.id("products") },
   handler: async (ctx, args) => {
-    return await ctx.db.get(args.id)
+    const product = await ctx.db.get(args.id)
+    if (!product || !product.isActive) return null
+    return product
   },
 })

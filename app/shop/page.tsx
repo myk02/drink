@@ -127,7 +127,10 @@ function ShopContent() {
               "@type": "Offer",
               priceCurrency: "KES",
               price: p.priceKes,
-              availability: "https://schema.org/InStock",
+              availability:
+                p.stock !== undefined && p.stock <= 0
+                  ? "https://schema.org/OutOfStock"
+                  : "https://schema.org/InStock",
               url: `${SITE_URL}/shop/${p.slug}`,
             },
           },

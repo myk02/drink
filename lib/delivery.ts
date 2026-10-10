@@ -14,6 +14,7 @@ export const DELIVERY_ZONES: DeliveryZone[] = [
   { name: "South B / South C", feeKes: 300 },
   { name: "Karen / Langata", feeKes: 400 },
   { name: "Other Nairobi suburb", feeKes: 350 },
+  { name: "Upcountry / Outside Nairobi", feeKes: 500 },
 ]
 
 export function getZoneFee(zoneName: string): number | null {

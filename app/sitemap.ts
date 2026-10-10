@@ -21,6 +21,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     "/shop/blackcurrant-acai-12",
     "/subscribe",
     "/support",
+    "/stores",
+    "/faq",
     "/events",
     "/events/tasting",
     "/events/gyms",

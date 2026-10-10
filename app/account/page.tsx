@@ -59,7 +59,11 @@ function PortalContent() {
   useEffect(() => {
     if (!isLoaded || !isSignedIn) return
     let cancelled = false
-    setProfileSync("pending")
+    // Async boundary: sync setState in an effect body triggers cascading
+    // renders (react-hooks/set-state-in-effect) — schedule instead.
+    queueMicrotask(() => {
+      if (!cancelled) setProfileSync("pending")
+    })
     void ensureMe({})
       .then(() => {
         if (!cancelled) setProfileSync("ready")

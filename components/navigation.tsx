@@ -64,6 +64,7 @@ export function Navigation() {
     { label: "Home", href: "/", hash: isHome ? "#hero" : null },
     { label: "Flavours", href: isHome ? null : "/flavours", hash: isHome ? "#flavours" : null },
     { label: "Shop", href: "/shop", hash: null },
+    { label: "Stores", href: "/stores", hash: null },
     { label: "Events", href: isHome ? null : "/events", hash: isHome ? "#creators" : null },
     { label: "Distributors", href: "/distributors", hash: null },
     { label: "Careers", href: "/careers", hash: null },

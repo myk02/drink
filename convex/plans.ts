@@ -4,10 +4,11 @@ import { internalMutation, query } from "./_generated/server"
 export const getActive = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db
+    const rows = await ctx.db
       .query("plans")
       .filter((q) => q.eq(q.field("isActive"), true))
       .collect()
+    return rows.sort((a, b) => a.sortOrder - b.sortOrder)
   },
 })
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
@@ -14,6 +14,7 @@ import { formatKes } from "@/lib/delivery"
 import { SITE_URL } from "@/lib/site"
 import { useCart } from "@/components/cart-provider"
 import { useWishlist } from "@/components/wishlist-provider"
+import { ProductReviews } from "@/components/product-reviews"
 import { getStockStatus, PRODUCT_FAQS } from "@/lib/shop-data"
 import { toast } from "sonner"
 import type { Doc } from "@/convex/_generated/dataModel"
@@ -44,8 +45,16 @@ function ShopSlugInner() {
   const router = useRouter()
   const [qty, setQty] = useState(1)
   const [showShareCopied, setShowShareCopied] = useState(false)
-  // Computed once per mount, not during render (render purity).
-  const [priceValidUntil] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().split("T")[0])
+  // Stable year-end date for JSON-LD — avoids a per-mount moving target.
+  const [priceValidUntil] = useState(() => `${new Date().getFullYear()}-12-31`)
+  // Mirror the shop listing: a dead Convex deployment never resolves
+  // useQuery, so surface an explicit offline state after 15s.
+  const [loadTimedOut, setLoadTimedOut] = useState(false)
+  useEffect(() => {
+    if (product !== undefined) return
+    const t = window.setTimeout(() => setLoadTimedOut(true), 15000)
+    return () => window.clearTimeout(t)
+  }, [product])
 
   const stock = useMemo(() => (product ? getStockStatus(product) : { label: "Checking...", tone: "in" as const }), [product])
   const discount = product?.compareAtKes && product.compareAtKes > product.priceKes ? Math.round((1 - product.priceKes / product.compareAtKes) * 100) : null
@@ -86,6 +95,17 @@ function ShopSlugInner() {
   }
 
   if (product === undefined) {
+    if (loadTimedOut) {
+      return (
+        <div className="min-h-screen bg-[#121212]">
+          <div className="max-w-7xl mx-auto px-6 py-24 text-center">
+            <h1 className="text-3xl font-black text-white">STORE OFFLINE</h1>
+            <p className="text-white/50 font-mono text-sm mt-2">We can&apos;t reach the shop right now. Check your connection and retry.</p>
+            <button onClick={() => window.location.reload()} className="inline-block mt-6 bg-[#AFFF00] text-[#121212] px-6 py-3 font-bold text-sm cursor-pointer">Retry</button>
+          </div>
+        </div>
+      )
+    }
     return (
       <div className="min-h-screen bg-[#121212] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#AFFF00] border-t-transparent rounded-full animate-spin" />
@@ -353,6 +373,8 @@ function ShopSlugInner() {
                 ))}
               </div>
             </div>
+
+            <ProductReviews productId={product._id} productName={product.name} />
           </div>
         </div>
 

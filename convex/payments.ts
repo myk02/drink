@@ -95,7 +95,7 @@ export const createCheckoutSession = action({
       }
       const product = await ctx.runQuery(api.products.getById, { id: item.productId })
       if (!product || !product.isActive) {
-        throw new Error(`"${item.productId}" is no longer available — please refresh your cart`)
+        throw new Error("An item in your cart is no longer available — please refresh your cart")
       }
       if (product.stock !== undefined && product.stock < item.quantity) {
         throw new Error(`"${product.name}" only has ${product.stock} left in stock — please adjust your cart`)
