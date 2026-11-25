@@ -205,16 +205,23 @@ export function AddToCartButton({
     canCount: number
     priceKes: number
     compareAtKes?: number
+    stock?: number
   }
   className?: string
   label?: string
   disabled?: boolean
 }) {
-  const { addItem, openCart } = useCart()
+  const { addItem, openCart, items } = useCart()
   const router = useRouter()
+  const inCart = items.find((item) => item.productId === product._id)?.quantity ?? 0
+  const stockLimitReached = product.stock !== undefined && inCart >= product.stock
 
   const handleAdd = () => {
     if (disabled) return
+    if (stockLimitReached) {
+      toast.error(product.stock === 0 ? "This pack is out of stock" : `Only ${product.stock} available`)
+      return
+    }
     addItem({
       productId: product._id,
       slug: product.slug,
@@ -233,13 +240,13 @@ export function AddToCartButton({
   return (
     <button
       onClick={handleAdd}
-      disabled={disabled}
+      disabled={disabled || stockLimitReached}
       className={
         className ||
         "w-full bg-[#AFFF00] text-[#121212] px-4 py-3 font-bold text-sm tracking-wide relative overflow-hidden hover:opacity-90 transition-opacity cursor-pointer disabled:bg-white/10 disabled:text-white/30 disabled:cursor-not-allowed"
       }
     >
-      {label ?? `Add to Cart · ${formatKes(product.priceKes)}`}
+      {product.stock === 0 ? "Out of stock" : stockLimitReached ? "Stock limit reached" : label ?? `Add to Cart · ${formatKes(product.priceKes)}`}
     </button>
   )
 }

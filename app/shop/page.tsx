@@ -459,7 +459,11 @@ function ShopContent() {
                   </div>
                   <p className="font-mono text-xs text-[#AFFF00]">{getStockStatus(quick).label}</p>
                   <p className="text-white/50 font-mono text-xs leading-relaxed">Zero sugar • 75mg caffeine • Natural flavours • 1–2 day Nairobi delivery • M-Pesa/card.</p>
-                  <AddToCartButton product={{ _id: quick._id, name: quick.name, slug: quick.slug, image: quick.image, canCount: quick.canCount, priceKes: quick.priceKes, compareAtKes: quick.compareAtKes }} label={`Add to Cart · ${formatKes(quick.priceKes)}`} />
+                  <AddToCartButton
+                    product={{ _id: quick._id, name: quick.name, slug: quick.slug, image: quick.image, canCount: quick.canCount, priceKes: quick.priceKes, compareAtKes: quick.compareAtKes, stock: quick.stock }}
+                    label={getStockStatus(quick).tone === "out" ? "Out of stock" : `Add to Cart · ${formatKes(quick.priceKes)}`}
+                    disabled={getStockStatus(quick).tone === "out"}
+                  />
                   <Link href={`/shop/${quick.slug}`} onClick={() => setQuick(null)} className="block text-center border border-white/10 text-white py-3 font-bold text-sm hover:border-[#AFFF00]/30 transition-colors">View full details →</Link>
                 </div>
               </div>
@@ -614,7 +618,7 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
         <div className="mt-4 flex gap-2">
           <div className="flex-1">
             <AddToCartButton
-              product={{ _id: product._id, name: product.name, slug: product.slug, image: product.image, canCount: product.canCount, priceKes: product.priceKes, compareAtKes: product.compareAtKes }}
+              product={{ _id: product._id, name: product.name, slug: product.slug, image: product.image, canCount: product.canCount, priceKes: product.priceKes, compareAtKes: product.compareAtKes, stock: product.stock }}
               label={stock.tone === "out" ? "Out of stock" : "Add to cart"}
               disabled={stock.tone === "out"}
             />

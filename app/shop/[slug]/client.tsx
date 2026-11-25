@@ -57,6 +57,9 @@ function ShopSlugInner() {
   }, [product])
 
   const stock = useMemo(() => (product ? getStockStatus(product) : { label: "Checking...", tone: "in" as const }), [product])
+  const inCartQuantity = product ? cart.items.find((item) => item.productId === product._id)?.quantity ?? 0 : 0
+  const remainingStock = product?.stock === undefined ? 20 : Math.max(0, product.stock - inCartQuantity)
+  const maxAddQuantity = Math.min(20, remainingStock)
   const discount = product?.compareAtKes && product.compareAtKes > product.priceKes ? Math.round((1 - product.priceKes / product.compareAtKes) * 100) : null
   const perCan = product ? Math.round(product.priceKes / product.canCount) : 0
 
@@ -74,6 +77,10 @@ function ShopSlugInner() {
     if (!product) return
     if (stock.tone === "out") {
       toast.error("This pack is out of stock right now")
+      return
+    }
+    if (qty > maxAddQuantity) {
+      toast.error(`Only ${remainingStock} more available`)
       return
     }
     cart.addItem({
@@ -261,13 +268,10 @@ function ShopSlugInner() {
                   <span className="text-white font-mono text-sm w-8 text-center" aria-live="polite">{qty}</span>
                   <button
                     onClick={() => {
-                      if (qty >= 20) {
-                        toast.info("Max 20 per item")
-                        return
-                      }
-                      setQty((q) => Math.min(20, q + 1))
+                      setQty((q) => Math.min(maxAddQuantity, q + 1))
                     }}
-                    className="p-1 text-white/60 hover:text-[#AFFF00] cursor-pointer"
+                    disabled={qty >= maxAddQuantity}
+                    className="p-1 text-white/60 hover:text-[#AFFF00] cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label={`Increase quantity of ${product.name}`}
                   ><Plus className="w-4 h-4" /></button>
                 </div>
@@ -276,12 +280,12 @@ function ShopSlugInner() {
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleAdd(false)}
-                  disabled={stock.tone === "out"}
+                  disabled={stock.tone === "out" || qty > maxAddQuantity}
                   className="bg-[#AFFF00] disabled:bg-white/10 disabled:text-white/30 text-[#121212] py-4 font-black text-sm tracking-wide hover:opacity-90 transition-opacity cursor-pointer disabled:cursor-not-allowed"
                 >
-                  Add to Cart — {formatKes(product.priceKes * qty)}
+                  {qty > maxAddQuantity ? "Stock limit reached" : `Add to Cart — ${formatKes(product.priceKes * qty)}`}
                 </button>
-                <button onClick={() => handleAdd(true)} disabled={stock.tone === "out"} className="border border-white/20 bg-white text-[#121212] py-4 font-black text-sm hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-40">Buy now →</button>
+                <button onClick={() => handleAdd(true)} disabled={stock.tone === "out" || qty > maxAddQuantity} className="border border-white/20 bg-white text-[#121212] py-4 font-black text-sm hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-40">Buy now →</button>
               </div>
               <p className="text-white/30 font-mono text-[11px] mt-2 text-center flex items-center justify-center gap-2"><ShieldCheck className="w-3 h-3" /> Paystack secure • M-Pesa or card • Never store card details</p>
             </div>

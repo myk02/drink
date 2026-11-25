@@ -266,8 +266,10 @@ function FlavorCarouselContent() {
                                 canCount: currentPack.canCount,
                                 priceKes: currentPack.priceKes,
                                 compareAtKes: currentPack.compareAtKes,
+                                stock: currentPack.stock,
                               }}
-                              label={`Add 12-Pack · ${formatKes(currentPack.priceKes)}`}
+                              label={currentPack.stock === 0 ? "Out of stock" : `Add 12-Pack · ${formatKes(currentPack.priceKes)}`}
+                              disabled={currentPack.stock === 0}
                             />
                           </div>
                         ) : (

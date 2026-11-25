@@ -96,8 +96,9 @@ function FlavoursContent() {
                           canCount: pack.canCount,
                           priceKes: pack.priceKes,
                           compareAtKes: pack.compareAtKes,
+                          stock: pack.stock,
                         }}
-                        label={`Add 12-Pack · ${formatKes(pack.priceKes)}`}
+                        label={pack.stock === 0 ? "Out of stock" : `Add 12-Pack · ${formatKes(pack.priceKes)}`}
                       />
                       <Link href={`/shop/${pack.slug}`} className="block text-center text-white/40 hover:text-[#AFFF00] font-mono text-xs transition-colors">
                         View pack details →
