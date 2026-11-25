@@ -8,6 +8,8 @@
     "dev:all": "node scripts/dev-all.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check:payments": "node scripts/check-payments.mjs",
     "start": "next start"
   },
   "dependencies": {
@@ -80,6 +82,7 @@
     "postcss": "^8.5",
     "tailwindcss": "^4.1.9",
     "tw-animate-css": "1.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.1.1"
   }
 }

@@ -170,7 +170,16 @@ export default defineSchema({
     email: v.string(),
     subscribedAt: v.number(),
     isActive: v.boolean(),
-  }).index("by_email", ["email"]),
+    // Double opt-in (Kenya Data Protection Act): a subscriber is only active
+    // after confirming the emailed link. Both tokens are unguessable.
+    confirmToken: v.optional(v.string()),
+    confirmedAt: v.optional(v.number()),
+    unsubscribeToken: v.optional(v.string()),
+    unsubscribedAt: v.optional(v.number()),
+  })
+    .index("by_email", ["email"])
+    .index("by_confirmToken", ["confirmToken"])
+    .index("by_unsubscribeToken", ["unsubscribeToken"]),
 
   productReviews: defineTable({
     productId: v.id("products"),

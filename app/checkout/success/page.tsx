@@ -9,6 +9,7 @@ import { CheckCircle2, Clock, AlertTriangle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { formatKes } from "@/lib/delivery"
 import { useCart } from "@/components/cart-provider"
+import { FUNNEL, trackEvent } from "@/lib/analytics"
 
 function SuccessContent() {
   const searchParams = useSearchParams()
@@ -85,6 +86,7 @@ function SuccessContent() {
     if (clearedRef.current === reference) return
     clearedRef.current = reference
     clearCart()
+    trackEvent(FUNNEL.purchase, { order_number: order.orderNumber, value: order.totalKes, currency: "KES" })
     try {
       window.localStorage.removeItem("gigi-last-order")
     } catch {

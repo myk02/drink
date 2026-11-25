@@ -3,6 +3,7 @@ import { action, internalAction, type ActionCtx } from "./_generated/server"
 import { api, internal } from "./_generated/api"
 import type { Doc } from "./_generated/dataModel"
 import { computeDeliveryFeeKes } from "../lib/delivery"
+import { renewalLinkEmail } from "../lib/email-templates"
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -470,6 +471,28 @@ export const renewDueMpesaSubscriptions = internalAction({
         checkoutUrl: payload.data.authorization_url,
         amountKes: plan.amountKes,
       })
+
+      // Deliver the link. Without this the M-Pesa renewal path existed only in
+      // the database, so mobile-money members silently churned.
+      const email = renewalLinkEmail({
+        planName: plan.name,
+        amountKes: plan.amountKes,
+        checkoutUrl: payload.data.authorization_url,
+        nextBillingDate: new Date(sub.nextBillingDate ?? now).toLocaleDateString("en-KE", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }),
+      })
+      await ctx
+        .runAction(internal.email.send, {
+          to: sub.email,
+          subject: email.subject,
+          html: email.html,
+          text: email.text,
+        })
+        .catch((err) => console.error("[renewal-email]", err))
+
       processed++
     }
 
@@ -477,7 +500,7 @@ export const renewDueMpesaSubscriptions = internalAction({
   },
 })
 
-// Portal actions â€” identity-guarded, drive Paystack managed subscriptions too.
+// Portal actions — identity-guarded, drive Paystack managed subscriptions too.
 
 async function requireSignedInEmail(ctx: ActionCtx): Promise<string> {
   const identity = await ctx.auth.getUserIdentity()

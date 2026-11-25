@@ -1,5 +1,7 @@
 import { v } from "convex/values"
 import { mutation } from "./_generated/server"
+import { internal } from "./_generated/api"
+import { adminAlertEmail, inquiryAckEmail } from "../lib/email-templates"
 
 export const submit = mutation({
   args: {
@@ -31,7 +33,7 @@ export const submit = mutation({
       userId = user?._id
     }
 
-    return await ctx.db.insert("inquiries", {
+    const id = await ctx.db.insert("inquiries", {
       name,
       email,
       phone: args.phone?.trim() || undefined,
@@ -41,5 +43,31 @@ export const submit = mutation({
       createdAt: Date.now(),
       userId,
     })
+
+    const ack = inquiryAckEmail({ name, category: args.category, message })
+    await ctx.scheduler.runAfter(0, internal.email.send, {
+      to: email,
+      subject: ack.subject,
+      html: ack.html,
+      text: ack.text,
+    })
+
+    const alert = adminAlertEmail({
+      subject: `New ${args.category} enquiry`,
+      lines: [
+        ["Name", name],
+        ["Email", email],
+        ["Phone", args.phone?.trim() || "—"],
+        ["Company", args.company?.trim() || "—"],
+        ["Message", message.slice(0, 600)],
+      ],
+    })
+    await ctx.scheduler.runAfter(0, internal.email.sendAdminAlert, {
+      subject: alert.subject,
+      html: alert.html,
+      text: alert.text,
+    })
+
+    return id
   },
 })

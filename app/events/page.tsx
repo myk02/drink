@@ -202,6 +202,11 @@ function EventsContent() {
   const past = filtered.filter((e) => e.status === "completed")
   const nextEvent = [...upcoming].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
 
+  // The main grid is a forward-looking list: only show completed events there
+  // when the visitor explicitly filters for past events (they otherwise get
+  // their own "Past highlights" strip).
+  const listedEvents = dateFilter === "past" ? past : upcoming
+
   const share = async (ev: GiGiEvent) => {
     const url = `${typeof window !== "undefined" ? window.location.origin : SITE_URL}/events#${ev._id}`
     const text = `${ev.title} — ${ev.date} at ${ev.location}`
@@ -335,7 +340,7 @@ function EventsContent() {
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="lg:col-span-5">
             <div className="bg-white/[0.04] border border-white/10 p-5">
               <div className="relative aspect-[4/3] overflow-hidden bg-[#0e0e0e] border border-white/5">
-                <Image src="/images/flavours/pineapple-coconut.png" alt="GiGi event" width={600} height={600} className="object-contain p-6" />
+                <Image src="/images/flavours/pineapple-coconut.png" alt="GiGi event" width={600} height={600} priority className="object-contain p-6" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[#121212]/60 via-transparent to-transparent" />
                 <div className="absolute bottom-3 left-3 right-3 bg-[#121212]/90 border border-white/10 p-3 flex items-center justify-between backdrop-blur">
                   <span className="text-white font-mono text-xs flex items-center gap-2"><CalendarDays className="w-3 h-3 text-[#AFFF00]" /> Nairobi activations</span>
@@ -501,7 +506,7 @@ function EventsContent() {
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-8 bg-[#AFFF00] text-[#121212] p-1">
             <div className="bg-[#121212] grid md:grid-cols-12 gap-0">
               <div className="md:col-span-5 relative aspect-[4/3] md:aspect-square bg-[#0e0e0e] overflow-hidden">
-                <Image src={featured.image} alt={featured.title} fill className="object-contain p-8" />
+                <Image src={featured.image} alt={featured.title} fill sizes="(max-width: 768px) 100vw, 40vw" className="object-contain p-8" />
                 <span className="absolute top-3 left-3 bg-[#AFFF00] text-[#121212] font-black text-xs px-2 py-1">FEATURED • {featured.category.toUpperCase()}</span>
                 <span className="absolute top-3 right-3 bg-white/90 text-[#121212] font-mono text-xs px-2 py-1">{featured.price}</span>
               </div>
@@ -540,7 +545,7 @@ function EventsContent() {
         <div id="upcoming" className="scroll-mt-24 mb-10">
           <div className="flex items-baseline justify-between flex-wrap gap-2 mb-6">
             <h2 className="text-2xl font-black text-white tracking-tight">
-              {dateFilter === "past" ? "PAST" : "UPCOMING"} <span className="text-[#AFFF00]">EVENTS</span> <span className="text-white/20 font-mono text-sm ml-2">{filtered.length} total</span>
+              {dateFilter === "past" ? "PAST" : "UPCOMING"} <span className="text-[#AFFF00]">EVENTS</span> <span className="text-white/20 font-mono text-sm ml-2">{listedEvents.length} total</span>
             </h2>
             <span className="font-mono text-white/30 text-xs hidden md:inline">Browse upcoming and past activations</span>
           </div>
@@ -552,7 +557,7 @@ function EventsContent() {
             </div>
           ) : (
             <div className={view === "grid" ? "grid md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-3"}>
-              {filtered.map((ev, i) => {
+              {listedEvents.map((ev, i) => {
                 const full = ev.registered >= ev.capacity
                 const ended = ev.status === "completed"
                 const isRegistered = registeredIds.has(ev._id)
@@ -571,7 +576,7 @@ function EventsContent() {
                     {view === "grid" ? (
                       <>
                         <div className="relative aspect-[16/10] bg-[#0e0e0e] overflow-hidden">
-                          <Image src={ev.image} alt={ev.title} fill className="object-contain p-6 group-hover:scale-105 transition-transform duration-500" />
+                          <Image src={ev.image} alt={ev.title} fill sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-contain p-6 group-hover:scale-105 transition-transform duration-500" />
                           <div className="absolute top-3 left-3 flex gap-2">
                             <span className="text-[10px] font-mono font-bold uppercase bg-[#121212] border border-white/10 text-white px-2 py-1">{ev.category}</span>
                             <span className={`text-[10px] font-mono font-bold uppercase px-2 py-1 ${ev.status === "upcoming" ? "bg-[#AFFF00] text-[#121212]" : ev.status === "ongoing" ? "bg-orange-400 text-[#121212]" : "bg-white/10 text-white/60"}`}>{ev.status}</span>
@@ -639,7 +644,7 @@ function EventsContent() {
             </div>
           )}
 
-          {convexEvents !== undefined && filtered.length === 0 && (
+          {convexEvents !== undefined && listedEvents.length === 0 && (
             <div className="bg-white/5 border border-dashed border-white/10 p-10 text-center">
               <Search className="w-8 h-8 text-white/20 mx-auto mb-3" />
               <p className="text-white font-bold">{allEvents.length === 0 ? "No events scheduled yet" : "No events match"}</p>

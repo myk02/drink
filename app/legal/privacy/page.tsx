@@ -51,10 +51,12 @@ export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-[#121212]">
       <div className="max-w-3xl mx-auto px-6 py-24">
-        <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </Link>
+        <div className="mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm transition-colors">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+        </div>
         <span className="font-mono text-[#AFFF00] text-xs tracking-widest inline-block">LEGAL</span>
         <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter mt-2 mb-2">Privacy Policy</h1>
         <p className="text-white/30 font-mono text-xs mb-10">Last updated: August 2026</p>

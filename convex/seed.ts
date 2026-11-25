@@ -263,3 +263,145 @@ export const seedPlans = internalMutation({
     })
   },
 })
+
+// Idempotent activation seed. Dates are computed relative to "now" so the
+// listing always shows a healthy mix of upcoming and past events instead of
+// an empty events page (the events table has no other writer).
+export const seedEvents = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const day = 24 * 60 * 60 * 1000
+    const isoDate = (offsetDays: number) =>
+      new Date(Date.now() + offsetDays * day).toISOString().slice(0, 10)
+
+    const events = [
+      {
+        title: "Lemon Lime Tasting — Westlands",
+        description:
+          "Free sampling of the full GiGi wall at Sarit Centre. Meet the crew, taste all ten flavours, and grab a chilled can on us.",
+        date: isoDate(7),
+        time: "10:00 AM – 4:00 PM",
+        location: "Sarit Centre, Westlands",
+        image: "/images/flavours/lemon-lime.png",
+        category: "tasting" as const,
+        capacity: 120,
+        registered: 86,
+        status: "upcoming" as const,
+      },
+      {
+        title: "Sunrise Run Club x GiGi",
+        description:
+          "A 5K loop through Karura Forest followed by a freezer-full of GiGi at the finish line. All paces welcome.",
+        date: isoDate(10),
+        time: "6:00 AM – 9:00 AM",
+        location: "Karura Forest, Karen",
+        image: "/images/flavours/watermelon-mint.png",
+        category: "gym" as const,
+        capacity: 80,
+        registered: 41,
+        status: "upcoming" as const,
+      },
+      {
+        title: "Office Fridge Drop — Upper Hill",
+        description:
+          "We stock your office fridge for a week. Free cases for teams of 20+, plus a 15-minute tasting for the whole floor.",
+        date: isoDate(12),
+        time: "11:00 AM – 2:00 PM",
+        location: "Upper Hill, CBD",
+        image: "/images/flavours/pineapple-coconut.png",
+        category: "corporate" as const,
+        capacity: 200,
+        registered: 120,
+        status: "upcoming" as const,
+      },
+      {
+        title: "Campus Takeover — University of Nairobi",
+        description:
+          "GiGi hits the main campus with a chill truck, a DJ, and free cans between lectures. Bring your student ID.",
+        date: isoDate(16),
+        time: "12:00 PM – 5:00 PM",
+        location: "University of Nairobi, CBD",
+        image: "/images/flavours/mango-passion.png",
+        category: "tasting" as const,
+        capacity: 300,
+        registered: 144,
+        status: "upcoming" as const,
+      },
+      {
+        title: "CrossFit 254 Throwdown",
+        description:
+          "Partner WOD, live leaderboard, and a GiGi recovery bar at the end. Spectators get free cans all afternoon.",
+        date: isoDate(21),
+        time: "8:00 AM – 3:00 PM",
+        location: "CrossFit 254, Lavington",
+        image: "/images/flavours/tamarind-ginger.png",
+        category: "gym" as const,
+        capacity: 150,
+        registered: 63,
+        status: "upcoming" as const,
+      },
+      {
+        title: "Friday Night Sampling — Kilimani",
+        description:
+          "Golden-hour tasting outside Yaya Centre. Ten flavours on ice, plus a limited Hibiscus Raspberry slushie.",
+        date: isoDate(3),
+        time: "4:00 PM – 9:00 PM",
+        location: "Yaya Centre, Kilimani",
+        image: "/images/flavours/hibiscus-raspberry.png",
+        category: "tasting" as const,
+        capacity: 100,
+        registered: 52,
+        status: "upcoming" as const,
+      },
+      {
+        title: "Blankets & Wine x GiGi",
+        description:
+          "Our biggest collab of the season — a full GiGi bar, shaded lounge, and sampling crew across the festival grounds.",
+        date: isoDate(-20),
+        time: "12:00 PM – 10:00 PM",
+        location: "Ngong Racecourse, Karen",
+        image: "/images/flavours/baobab-berry.png",
+        category: "organizer" as const,
+        capacity: 400,
+        registered: 380,
+        status: "completed" as const,
+      },
+      {
+        title: "Westlands Street Fest",
+        description:
+          "Two days of street food, live sets and free GiGi tastings on the Westlands loop.",
+        date: isoDate(-40),
+        time: "10:00 AM – 8:00 PM",
+        location: "Westlands",
+        image: "/images/flavours/passion-lemonade.png",
+        category: "tasting" as const,
+        capacity: 250,
+        registered: 231,
+        status: "completed" as const,
+      },
+    ]
+
+    const existing = await ctx.db.query("events").collect()
+    let inserted = 0
+    let updated = 0
+
+    for (const event of events) {
+      const current = existing.find((item) => item.title === event.title)
+      if (current) {
+        // Keep dates fresh on re-runs but never clobber real registrations.
+        await ctx.db.patch(current._id, {
+          date: event.date,
+          status: event.status,
+          description: event.description,
+          capacity: event.capacity,
+        })
+        updated++
+      } else {
+        await ctx.db.insert("events", event)
+        inserted++
+      }
+    }
+
+    return { inserted, updated }
+  },
+})

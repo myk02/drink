@@ -1,6 +1,10 @@
 import { v } from "convex/values"
 import { query, mutation } from "./_generated/server"
+import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
+import { eventConfirmationEmail } from "../lib/email-templates"
+
+const SITE_URL = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://gigi.energy").replace(/\/$/, "")
 
 export const getByCategory = query({
   args: { category: v.union(v.literal("tasting"), v.literal("gym"), v.literal("corporate"), v.literal("organizer")) },
@@ -65,7 +69,25 @@ export const register = mutation({
       registeredAt: Date.now(),
     })
 
+    // Convex mutations are transactional (OCC), so the capacity read above and
+    // this write cannot interleave with another registration — no overbooking.
     await ctx.db.patch(args.eventId, { registered: event.registered + 1 })
+
+    const confirmation = eventConfirmationEmail({
+      name,
+      eventTitle: event.title,
+      date: event.date,
+      time: event.time,
+      location: event.location,
+      eventUrl: `${SITE_URL}/events`,
+    })
+    await ctx.scheduler.runAfter(0, internal.email.send, {
+      to: email,
+      subject: confirmation.subject,
+      html: confirmation.html,
+      text: confirmation.text,
+    })
+
     return { ok: true }
   },
 })

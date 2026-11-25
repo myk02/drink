@@ -4,8 +4,11 @@ import { mutation, query } from "./_generated/server"
 // Public mutation: called by the Clerk webhook route (app/api/webhooks/clerk)
 // via ConvexHttpClient. Internal functions are not callable over HTTP.
 // Idempotent upsert keyed by clerkId.
+// Guarded by the Clerk secret key so a caller cannot overwrite another
+// member's email and then act on their subscription via email-keyed actions.
 export const syncUser = mutation({
   args: {
+    secret: v.string(),
     clerkId: v.string(),
     name: v.optional(v.string()),
     email: v.optional(v.string()),
@@ -13,6 +16,10 @@ export const syncUser = mutation({
   },
   returns: v.id("users"),
   handler: async (ctx, args) => {
+    const expected = process.env.CLERK_SECRET_KEY
+    if (!expected) throw new Error("User sync is not configured.")
+    if (args.secret !== expected) throw new Error("Not authorized.")
+
     const existing = await ctx.db
       .query("users")
       .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))

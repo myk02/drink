@@ -65,9 +65,11 @@ export default function FaqPage() {
     <div className="min-h-screen bg-[#121212]">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="max-w-3xl mx-auto px-6 py-24">
-        <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Home
-        </Link>
+        <div className="mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back to Home
+          </Link>
+        </div>
         <span className="font-mono text-[#AFFF00] text-xs tracking-widest">HELP</span>
         <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mt-2">FAQ</h1>
         <p className="text-white/60 font-mono text-sm mt-4 mb-12">Orders, delivery, payments, Club and product — answered.</p>

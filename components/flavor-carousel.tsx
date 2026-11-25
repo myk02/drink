@@ -274,11 +274,11 @@ function FlavorCarouselContent() {
                           </div>
                         ) : (
                           <Link
-                            href={`/shop/${currentFlavor.slug}-12`}
+                            href="/shop"
                             className="flex-1 px-6 py-3 font-bold text-sm tracking-wide text-center"
                             style={{ backgroundColor: currentFlavor.accent, color: "#121212" }}
                           >
-                            Shop 12-Pack
+                            Shop Cases
                           </Link>
                         )}
                         <Link

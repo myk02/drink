@@ -11,6 +11,7 @@ import { toast } from "sonner"
 import { useCart } from "@/components/cart-provider"
 import { ClientOnly } from "@/components/client-only"
 import { DELIVERY_ZONES, formatKes, computeDeliveryFeeKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
+import { FUNNEL, trackEvent } from "@/lib/analytics"
 
 const inputClass =
   "w-full bg-white/5 border border-white/10 px-4 py-3 text-white placeholder:text-white/30 font-mono text-sm focus:outline-none focus:border-[#AFFF00] transition-colors"
@@ -76,6 +77,7 @@ function CheckoutContent() {
       return
     }
     setIsSubmitting(true)
+    trackEvent(FUNNEL.checkoutStart, { value: cart.subtotalKes, currency: "KES", items: cart.totalCount })
     try {
       const result = await createCheckout({
         items: cart.items.map((i) => ({ productId: i.productId as import("@/convex/_generated/dataModel").Id<"products">, quantity: i.quantity })),

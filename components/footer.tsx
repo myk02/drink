@@ -232,8 +232,11 @@ function NewsletterForm() {
     setIsSubmitting(true)
     try {
       const result = await subscribe({ email })
-      void result
-      toast.success("You're in! Welcome to the GiGi crew.")
+      toast.success(
+        result.alreadyConfirmed
+          ? "You're already on the list."
+          : "Check your inbox — confirm the link and you're in."
+      )
       setEmail("")
       setJustSubscribed(true)
     } catch (err) {

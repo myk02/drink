@@ -14,6 +14,7 @@ import type * as careerApplications from "../careerApplications.js";
 import type * as crons from "../crons.js";
 import type * as distributors from "../distributors.js";
 import type * as donations from "../donations.js";
+import type * as email from "../email.js";
 import type * as events from "../events.js";
 import type * as flavors from "../flavors.js";
 import type * as gyms from "../gyms.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   distributors: typeof distributors;
   donations: typeof donations;
+  email: typeof email;
   events: typeof events;
   flavors: typeof flavors;
   gyms: typeof gyms;

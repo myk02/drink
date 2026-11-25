@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react"
 import { createLocalStorageStore } from "@/lib/local-storage-store"
+import { FUNNEL, trackEvent } from "@/lib/analytics"
 
 export interface CartItem {
   productId: string
@@ -108,6 +109,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         )
       : [...next, { ...item, quantity: Math.min(quantity, MAX_QTY_PER_ITEM) }]
     cartStore.set(updated)
+    trackEvent(FUNNEL.addToCart, { slug: item.slug, value: item.priceKes * quantity, currency: "KES" })
   }, [])
 
   const removeItem = useCallback((productId: string) => {

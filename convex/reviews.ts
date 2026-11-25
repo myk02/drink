@@ -51,13 +51,19 @@ export const submit = mutation({
     const product = await ctx.db.get(args.productId)
     if (!product) throw new Error("Product not found")
 
-    // Light anti-spam: max 3 reviews per product per day.
+    // Light anti-spam: max 3 reviews per product per reviewer per day. Keying
+    // this on the product alone would let the first three customers block
+    // reviews for everyone else for the rest of the day.
     const since = Date.now() - DAY_MS
     const recent = await ctx.db
       .query("productReviews")
       .withIndex("by_product", (q) => q.eq("productId", args.productId))
       .collect()
-    if (recent.filter((r) => r.createdAt >= since).length >= 3) {
+    const reviewerKey = name.toLowerCase()
+    const recentFromReviewer = recent.filter(
+      (r) => r.createdAt >= since && r.name.trim().toLowerCase() === reviewerKey
+    )
+    if (recentFromReviewer.length >= 3) {
       throw new Error("Thanks — reviews are paused briefly to prevent spam. Try again tomorrow.")
     }
 

@@ -1,8 +1,9 @@
 import { v } from "convex/values"
 import { internalMutation, internalQuery, query, type MutationCtx } from "./_generated/server"
 import type { Id } from "./_generated/dataModel"
+import { MONTH_MS, nextBillingFrom, normalizeChannel, renewalAttemptOutcome } from "../lib/billing-rules"
 
-export const MONTH_MS = 30 * 24 * 60 * 60 * 1000
+export { MONTH_MS }
 
 async function logEvent(
   ctx: MutationCtx,
@@ -16,12 +17,6 @@ async function logEvent(
     ...extra,
     createdAt: Date.now(),
   })
-}
-
-function normalizeChannel(channel: string): "card" | "mobile_money" | "unknown" {
-  if (channel === "card") return "card"
-  if (channel === "mobile_money") return "mobile_money"
-  return "unknown"
 }
 
 // ---------- internal lookups used by webhook handlers & cron ----------
@@ -148,7 +143,7 @@ export const handleChargeSuccess = internalMutation({
       paystackCustomerCode: args.customerCode ?? sub.paystackCustomerCode,
       paystackSubscriptionCode: args.subscriptionCode ?? sub.paystackSubscriptionCode,
       paystackEmailToken: args.emailToken ?? sub.paystackEmailToken,
-      nextBillingDate: Date.now() + MONTH_MS,
+      nextBillingDate: nextBillingFrom(Date.now()),
       failedChargeCount: 0,
       lastRenewalCheckoutUrl: undefined,
       pendingReference: undefined,
@@ -225,8 +220,7 @@ export const recordRenewalLink = internalMutation({
   handler: async (ctx, args) => {
     const sub = await ctx.db.get(args.subscriptionId)
     if (!sub) return
-    const failedChargeCount = sub.failedChargeCount + 1
-    const status = failedChargeCount >= 5 ? ("cancelled" as const) : failedChargeCount >= 2 ? ("past_due" as const) : sub.status
+    const { failedChargeCount, status } = renewalAttemptOutcome(sub.failedChargeCount)
     await ctx.db.patch(sub._id, {
       lastRenewalCheckoutUrl: args.checkoutUrl,
       lastRenewalAttemptAt: Date.now(),
@@ -457,7 +451,7 @@ export const advanceRenewalBySubscriptionCode = internalMutation({
 
     await ctx.db.patch(sub._id, {
       status: "active",
-      nextBillingDate: Date.now() + MONTH_MS,
+      nextBillingDate: nextBillingFrom(Date.now()),
       failedChargeCount: 0,
       lastRenewalCheckoutUrl: undefined,
     })

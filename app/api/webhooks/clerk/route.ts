@@ -12,8 +12,16 @@ function getConvexClient(): ConvexHttpClient | null {
 
 export async function POST(req: Request) {
   const CLERK_WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
+  // 503 (not 500) tells Clerk the endpoint is temporarily unavailable while
+  // Clerk retries. Accounts are still repaired by auth.ensureMe on /account,
+  // so a missing secret degrades sync instead of breaking sign-up.
   if (!CLERK_WEBHOOK_SECRET) {
-    return new Response("CLERK_WEBHOOK_SECRET is not configured", { status: 500 })
+    console.error("[clerk-webhook] CLERK_WEBHOOK_SECRET missing — user sync relies on auth.ensureMe")
+    return Response.json({ error: "clerk_webhook_not_configured" }, { status: 503 })
+  }
+  const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY
+  if (!CLERK_SECRET_KEY) {
+    return Response.json({ error: "clerk_secret_not_configured" }, { status: 503 })
   }
 
   const headerPayload = await headers()
@@ -56,6 +64,7 @@ export async function POST(req: Request) {
       return new Response("NEXT_PUBLIC_CONVEX_URL is not configured", { status: 500 })
     }
     await convex.mutation(api.auth.syncUser, {
+      secret: CLERK_SECRET_KEY,
       clerkId: id,
       name: [first_name, last_name].filter(Boolean).join(" ") || undefined,
       email,

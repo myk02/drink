@@ -12,13 +12,15 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-[#121212]">
       <div className="max-w-3xl mx-auto px-6 py-24">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm mb-8 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to Home
-        </Link>
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-white/60 hover:text-[#AFFF00] font-mono text-sm transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Link>
+        </div>
         <span className="font-mono text-[#AFFF00] text-xs tracking-widest inline-block">OUR STORY</span>
         <h1 className="text-4xl md:text-6xl font-black text-white tracking-tighter mt-2">
           MADE IN <span className="text-[#AFFF00]">NAIROBI</span>

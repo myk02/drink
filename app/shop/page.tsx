@@ -608,10 +608,10 @@ function ProductCard({ product, index, onQuick }: { product: Product; index: num
         </Link>
         <p className="text-white/50 font-mono text-xs mt-1.5 leading-relaxed line-clamp-2">{product.description}</p>
 
-        <div className="flex items-baseline gap-2 mt-3">
-          <span className="text-[#AFFF00] font-black text-lg">{formatKes(product.priceKes)}</span>
-          {product.compareAtKes && <span className="text-white/30 font-mono text-xs line-through">{formatKes(product.compareAtKes)}</span>}
-          {product.compareAtKes && <span className="text-[#AFFF00] font-mono text-xs">Save {formatKes(product.compareAtKes - product.priceKes)}</span>}
+        <div className="flex flex-wrap items-baseline gap-2 mt-3">
+          <span className="text-[#AFFF00] font-black text-lg whitespace-nowrap">{formatKes(product.priceKes)}</span>
+          {product.compareAtKes && <span className="text-white/30 font-mono text-xs line-through whitespace-nowrap">{formatKes(product.compareAtKes)}</span>}
+          {product.compareAtKes && <span className="text-[#AFFF00] font-mono text-xs whitespace-nowrap">Save {formatKes(product.compareAtKes - product.priceKes)}</span>}
         </div>
         <p className="text-white/60 font-mono text-[11px] mt-1">Free delivery over {formatKes(FREE_DELIVERY_THRESHOLD_KES)} • 1–2 day Nairobi</p>
 

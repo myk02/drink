@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { ClientOnly } from "@/components/client-only"
+import { OrderHistory } from "@/components/order-history"
 import { formatKes } from "@/lib/delivery"
 
 function formatDate(ms: number | null | undefined): string {
@@ -289,6 +290,8 @@ function PortalContent() {
       )}
 
       {/* Billing history */}
+      <OrderHistory />
+
       <div className="bg-white/5 border border-white/10 p-6">
         <h3 className="text-white font-bold text-sm mb-4">Billing history</h3>
         {history.length === 0 ? (

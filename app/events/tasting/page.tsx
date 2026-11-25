@@ -5,14 +5,21 @@ import { api } from "@/convex/_generated/api"
 import { motion, AnimatePresence } from "framer-motion"
 import Link from "next/link"
 import { ArrowLeft, MapPin, Calendar, Clock, Users } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 import type { Id } from "@/convex/_generated/dataModel"
 import { ClientOnly } from "@/components/client-only"
 
 function TastingEventsContent() {
   const dbEvents = useQuery(api.events.getByCategory, { category: "tasting" })
-  const events = dbEvents
+  // Upcoming tastings first (soonest at the top), completed ones last.
+  const events = useMemo(() => {
+    if (!dbEvents) return dbEvents
+    const rank = (status: string) => (status === "completed" ? 1 : 0)
+    return [...dbEvents].sort(
+      (a, b) => rank(a.status) - rank(b.status) || new Date(a.date).getTime() - new Date(b.date).getTime()
+    )
+  }, [dbEvents])
   const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set())
 
   const markRegistered = (eventId: string) => setRegisteredIds((prev) => new Set(prev).add(eventId))
