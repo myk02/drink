@@ -200,9 +200,17 @@ function SuccessContent() {
             </div>
           </div>
         </div>
-        <Link href="/shop" className="inline-block mt-8 bg-[#AFFF00] text-[#121212] px-8 py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
-          Continue Shopping
-        </Link>
+        <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+          <Link href="/shop" className="inline-block bg-[#AFFF00] text-[#121212] px-8 py-4 font-bold text-sm tracking-wide hover:opacity-90 transition-opacity">
+            Continue Shopping
+          </Link>
+          <Link
+            href={`/orders/track?reference=${encodeURIComponent(reference)}`}
+            className="inline-block bg-white/10 text-white px-8 py-4 font-bold text-sm tracking-wide hover:bg-white/20 transition-colors"
+          >
+            Track This Order
+          </Link>
+        </div>
       </div>
     )
   }

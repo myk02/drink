@@ -53,6 +53,7 @@ export function Footer() {
         { label: "Home", href: "/" },
         { label: "Flavours", href: "/flavours" },
         { label: "Events", href: "/events" },
+        { label: "Track an Order", href: "/orders/track" },
         { label: "Find in Stores", href: "/stores" },
         { label: "FAQ", href: "/faq" },
         { label: "Distributors", href: "/distributors" },
