@@ -12,6 +12,7 @@ export interface CartItem {
   canCount: number
   priceKes: number
   compareAtKes?: number
+  stock?: number
   quantity: number
 }
 
@@ -42,7 +43,15 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null)
 
 const STORAGE_KEY = "gigi-cart-v1"
-const MAX_QTY_PER_ITEM = 20
+export const CART_MAX_PER_ITEM = 20
+
+// The hard upper bound for a line: the product's live stock when the catalog
+// publishes one, otherwise the per-item cap. Shared with the UI so the +/- 
+// controls refuse the same number the store clamps to.
+export function cartQuantityCap(stock?: number): number {
+  if (stock === undefined || !Number.isFinite(stock)) return CART_MAX_PER_ITEM
+  return Math.max(0, Math.min(Math.floor(stock), CART_MAX_PER_ITEM))
+}
 
 function parseStoredCart(raw: unknown): CartItem[] | null {
   if (!Array.isArray(raw)) return null
@@ -62,7 +71,8 @@ function parseStoredCart(raw: unknown): CartItem[] | null {
       continue
     }
     if (!Number.isFinite(c.priceKes) || !Number.isFinite(c.quantity) || !Number.isFinite(c.canCount)) continue
-    const quantity = Math.max(1, Math.min(Math.floor(c.quantity), MAX_QTY_PER_ITEM))
+    const stock = typeof c.stock === "number" && Number.isFinite(c.stock) ? Math.max(0, Math.floor(c.stock)) : undefined
+    const quantity = Math.max(1, Math.min(Math.floor(c.quantity), cartQuantityCap(stock)))
     items.push({
       productId: c.productId,
       slug: c.slug,
@@ -71,6 +81,7 @@ function parseStoredCart(raw: unknown): CartItem[] | null {
       canCount: Math.max(1, Math.floor(c.canCount)),
       priceKes: Math.max(0, Math.round(c.priceKes)),
       compareAtKes: typeof c.compareAtKes === "number" && Number.isFinite(c.compareAtKes) ? c.compareAtKes : undefined,
+      stock,
       quantity,
     })
   }
@@ -95,6 +106,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const hydrated = useSyncExternalStore(emptySubscribe, () => true, () => false)
 
   const addItem = useCallback((item: Omit<CartItem, "quantity">, quantity = 1) => {
+    const cap = cartQuantityCap(item.stock)
+    if (cap < 1) return
     const next = cartStore.get().map((i) => i)
     const existing = next.find((i) => i.productId === item.productId || i.slug === item.slug)
     const updated = existing
@@ -103,11 +116,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             ? {
                 ...item,
                 productId: item.productId,
-                quantity: Math.min(i.quantity + quantity, MAX_QTY_PER_ITEM),
+                quantity: Math.min(i.quantity + quantity, cap),
               }
             : i
         )
-      : [...next, { ...item, quantity: Math.min(quantity, MAX_QTY_PER_ITEM) }]
+      : [...next, { ...item, quantity: Math.min(quantity, cap) }]
     cartStore.set(updated)
     trackEvent(FUNNEL.addToCart, { slug: item.slug, value: item.priceKes * quantity, currency: "KES" })
   }, [])
@@ -118,10 +131,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const setQuantity = useCallback((productId: string, quantity: number) => {
     const prev = cartStore.get()
+    const current = prev.find((i) => i.productId === productId)
+    const cap = cartQuantityCap(current?.stock)
     const next =
-      quantity <= 0
+      quantity <= 0 || cap < 1
         ? prev.filter((i) => i.productId !== productId)
-        : prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.min(quantity, MAX_QTY_PER_ITEM) } : i))
+        : prev.map((i) => (i.productId === productId ? { ...i, quantity: Math.min(quantity, cap) } : i))
     cartStore.set(next)
   }, [])
 
@@ -152,15 +167,15 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         changed = true
         continue
       }
-      const maxQty = product.stock !== undefined ? Math.max(0, product.stock) : MAX_QTY_PER_ITEM
-      const quantity = Math.min(item.quantity, maxQty, MAX_QTY_PER_ITEM)
+      const maxQty = cartQuantityCap(product.stock)
+      const quantity = Math.min(item.quantity, maxQty)
       if (quantity <= 0) {
         changed = true
         continue
       }
       const existing = merged.get(product._id)
       if (existing) {
-        existing.quantity = Math.min(existing.quantity + quantity, maxQty, MAX_QTY_PER_ITEM)
+        existing.quantity = Math.min(existing.quantity + quantity, maxQty)
         changed = true
         continue
       }
@@ -170,9 +185,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         name: product.name,
         image: product.image,
         canCount: product.canCount,
-        priceKes: product.priceKes,
-        compareAtKes: product.compareAtKes,
-        quantity,
+              priceKes: product.priceKes,
+      compareAtKes: product.compareAtKes,
+      stock: product.stock,
+      quantity,
       }
       if (
         updated.productId !== item.productId ||
@@ -182,6 +198,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         updated.canCount !== item.canCount ||
         updated.priceKes !== item.priceKes ||
         updated.compareAtKes !== item.compareAtKes ||
+        updated.stock !== item.stock ||
         updated.quantity !== item.quantity
       ) {
         changed = true

@@ -8,7 +8,7 @@ import { ArrowLeft, Lock, Loader2, ChevronDown, Minus, Plus, Trash2 } from "luci
 import { useAction, useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { toast } from "sonner"
-import { useCart } from "@/components/cart-provider"
+import { useCart, cartQuantityCap } from "@/components/cart-provider"
 import { ClientOnly } from "@/components/client-only"
 import { DELIVERY_ZONES, formatKes, computeDeliveryFeeKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
 import { FUNNEL, trackEvent } from "@/lib/analytics"
@@ -223,10 +223,12 @@ function CheckoutContent() {
                           <button
                             type="button"
                             onClick={() => {
-                              if (item.quantity >= 20) return
-                              cart.setQuantity(item.productId, item.quantity + 1)
+                              const cap = cartQuantityCap(item.stock)
+                              if (item.quantity >= cap) return
+                              cart.setQuantity(item.productId, Math.min(item.quantity + 1, cap))
                             }}
-                            className="text-white/60 hover:text-[#AFFF00] p-1 cursor-pointer"
+                            disabled={item.quantity >= cartQuantityCap(item.stock)}
+                            className="text-white/60 hover:text-[#AFFF00] p-1 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                             aria-label={`Increase ${item.name}`}
                           >
                             <Plus className="w-3 h-3" />

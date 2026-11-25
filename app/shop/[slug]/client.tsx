@@ -91,6 +91,7 @@ function ShopSlugInner() {
       canCount: product.canCount,
       priceKes: product.priceKes,
       compareAtKes: product.compareAtKes,
+      stock: product.stock,
     }, qty)
     if (goCheckout) {
       cart.closeCart()

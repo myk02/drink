@@ -7,7 +7,7 @@ import Link from "next/link"
 import { X, Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { useCart } from "@/components/cart-provider"
+import { useCart, cartQuantityCap, CART_MAX_PER_ITEM } from "@/components/cart-provider"
 import { formatKes, FREE_DELIVERY_THRESHOLD_KES } from "@/lib/delivery"
 
 export function CartDrawer() {
@@ -82,7 +82,14 @@ export function CartDrawer() {
               <>
                 <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
                   <AnimatePresence initial={false}>
-                    {items.map((item) => (
+                    {items.map((item) => {
+                      const cap = cartQuantityCap(item.stock)
+                      const atCap = item.quantity >= cap
+                      const capMessage =
+                        item.stock !== undefined && item.stock <= CART_MAX_PER_ITEM
+                          ? `Only ${item.stock} in stock`
+                          : `Max ${CART_MAX_PER_ITEM} per item`
+                      return (
                       <motion.div
                         key={item.productId}
                         layout
@@ -122,14 +129,16 @@ export function CartDrawer() {
                               <span className="text-white font-mono text-sm w-5 text-center">{item.quantity}</span>
                               <button
                                 onClick={() => {
-                                  if (item.quantity >= 20) {
-                                    toast.info("Max 20 per item")
+                                  if (atCap) {
+                                    toast.error(capMessage)
                                     return
                                   }
-                                  setQuantity(item.productId, item.quantity + 1)
+                                  setQuantity(item.productId, Math.min(item.quantity + 1, cap))
                                 }}
-                                className="text-white/60 hover:text-[#AFFF00] transition-colors cursor-pointer p-1"
+                                disabled={atCap}
+                                className="text-white/60 hover:text-[#AFFF00] transition-colors cursor-pointer p-1 disabled:opacity-30 disabled:cursor-not-allowed"
                                 aria-label={`Increase quantity of ${item.name}`}
+                                aria-disabled={atCap}
                               >
                                 <Plus className="w-3.5 h-3.5" />
                               </button>
@@ -138,9 +147,15 @@ export function CartDrawer() {
                               {formatKes(item.priceKes * item.quantity)}
                             </span>
                           </div>
+                          {atCap && (
+                            <p className="text-[#f59e0b] font-mono text-[10px] mt-2" role="status">
+                              {capMessage}
+                            </p>
+                          )}
                         </div>
                       </motion.div>
-                    ))}
+                      )
+                    })}
                   </AnimatePresence>
                 </div>
 
@@ -230,6 +245,7 @@ export function AddToCartButton({
       canCount: product.canCount,
       priceKes: product.priceKes,
       compareAtKes: product.compareAtKes,
+      stock: product.stock,
     })
     toast.success(`${product.name} added to cart`, {
       action: { label: "Checkout", onClick: () => router.push("/checkout") },
