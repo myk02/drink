@@ -61,9 +61,15 @@ const paystackWebhook = httpAction(async (ctx, req) => {
   const isValid = await verifyPaystackSignature(rawBody, req.headers.get("x-paystack-signature"), secretKey)
   if (!isValid) return new Response("Invalid signature", { status: 401 })
 
+  let event: PaystackEvent
   try {
-    const event = JSON.parse(rawBody) as PaystackEvent
+    event = JSON.parse(rawBody) as PaystackEvent
+  } catch {
+    // A correctly signed but malformed payload cannot become valid on retry.
+    return new Response("Malformed event", { status: 400 })
+  }
 
+  try {
     switch (event.event) {
       case "charge.success": {
         const data = event.data
@@ -157,8 +163,11 @@ const paystackWebhook = httpAction(async (ctx, req) => {
         break
       }
     }
-  } catch {
-    // Signed but malformed payloads: acknowledge to stop retries
+  } catch (error) {
+    // Let Paystack retry when Convex or a downstream mutation is temporarily
+    // unavailable. A 200 here would permanently drop successful payments.
+    console.error("[paystack-webhook] Event processing failed", error)
+    return new Response("Event processing failed", { status: 500 })
   }
 
   return new Response(JSON.stringify({ received: true }), {

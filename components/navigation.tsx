@@ -79,6 +79,7 @@ export function Navigation() {
 
   return (
     <motion.nav
+      aria-label="Main navigation"
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 100, damping: 20 }}
@@ -212,6 +213,7 @@ export function Navigation() {
             whileTap={{ scale: 0.9 }}
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
             <AnimatePresence mode="wait">
               {mobileMenuOpen ? (
@@ -243,6 +245,7 @@ export function Navigation() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
+            id="mobile-navigation"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -254,6 +257,7 @@ export function Navigation() {
                 <Link
                   key={item.label}
                   href={item.href ?? "/"}
+                  aria-current={isLinkActive(item) ? "page" : undefined}
                   onClick={(e) => {
                     if (item.hash) {
                       e.preventDefault()
@@ -264,7 +268,11 @@ export function Navigation() {
                   }}
                 >
                   <motion.span
-                    className="block text-white/80 hover:text-[#AFFF00] text-lg font-medium py-2"
+                    className={`block text-lg font-medium py-2 border-l-2 pl-3 transition-colors ${
+                      isLinkActive(item)
+                        ? "text-[#AFFF00] border-[#AFFF00]"
+                        : "text-white/80 hover:text-[#AFFF00] border-transparent"
+                    }`}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.1 }}

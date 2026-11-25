@@ -65,6 +65,7 @@ export const createCheckoutSession = action({
     if (!secretKey) throw new Error("Payments are not configured yet. Please try again later.")
 
     if (args.items.length === 0) throw new Error("Your cart is empty")
+    if (args.items.length > 50) throw new Error("Your cart has too many different items")
 
     const email = args.customer.email.trim().toLowerCase()
     const name = args.customer.name.trim()
@@ -90,10 +91,21 @@ export const createCheckoutSession = action({
       quantity: number
     }> = []
 
+    // Treat each product as one cart line before stock checks. Otherwise a
+    // crafted request can repeat a product ID and pass several smaller stock
+    // checks independently, then charge for more units than we have.
+    const quantitiesByProduct = new Map<string, { productId: typeof args.items[number]["productId"]; quantity: number }>()
     for (const item of args.items) {
       if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 20) {
         throw new Error("Invalid item quantity")
       }
+      const current = quantitiesByProduct.get(item.productId)
+      const quantity = (current?.quantity ?? 0) + item.quantity
+      if (quantity > 20) throw new Error("Invalid item quantity")
+      quantitiesByProduct.set(item.productId, { productId: item.productId, quantity })
+    }
+
+    for (const item of quantitiesByProduct.values()) {
       const product = await ctx.runQuery(api.products.getById, { id: item.productId })
       if (!product || !product.isActive) {
         throw new Error("An item in your cart is no longer available — please refresh your cart")
