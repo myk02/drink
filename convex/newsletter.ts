@@ -15,7 +15,7 @@ function token(): string {
 }
 
 function siteOrigin(): string {
-  return (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://gigi.energy").replace(/\/$/, "")
+  return (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://giflavours.vercel.app").replace(/\/$/, "")
 }
 
 // Double opt-in: a new signup is stored inactive and only becomes a real

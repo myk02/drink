@@ -3,7 +3,7 @@ import { internalMutation, internalQuery, query } from "./_generated/server"
 import { internal } from "./_generated/api"
 import { orderReceiptEmail } from "../lib/email-templates"
 
-const SITE_URL = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://gigi.energy").replace(/\/$/, "")
+const SITE_URL = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://giflavours.vercel.app").replace(/\/$/, "")
 
 export const createPendingOrder = internalMutation({
   args: {

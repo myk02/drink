@@ -33,6 +33,16 @@ const STATIC_ROUTES: Array<{ path: string; priority: number; changeFrequency: "w
   { path: "/legal/cookies", priority: 0.3, changeFrequency: "monthly" },
 ]
 
+// Event docs store a short category ("gym", "organizer"), while the published
+// routes are plural and not a straight suffix — interpolating the category
+// published /events/gym and /events/organizer, both of which 404.
+const EVENT_ROUTES: Record<string, string> = {
+  tasting: "/events/tasting",
+  gym: "/events/gyms",
+  corporate: "/events/corporate",
+  organizer: "/events/organizers",
+}
+
 function convexClient(): ConvexHttpClient | null {
   const url = process.env.NEXT_PUBLIC_CONVEX_URL
   if (!url) return null
@@ -69,7 +79,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
   for (const event of events) {
     if (event.status === "completed") continue
-    push(`${SITE_URL}/events/${event.category}`, 0.6, new Date(event.date))
+    const route = EVENT_ROUTES[event.category]
+    if (!route) continue
+    push(`${SITE_URL}${route}`, 0.6, new Date(event.date))
   }
 
   return entries

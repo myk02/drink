@@ -4,7 +4,7 @@ import { internal } from "./_generated/api"
 import type { Id } from "./_generated/dataModel"
 import { eventConfirmationEmail } from "../lib/email-templates"
 
-const SITE_URL = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://gigi.energy").replace(/\/$/, "")
+const SITE_URL = (process.env.SITE_URL ?? process.env.NEXT_PUBLIC_SITE_URL ?? "https://giflavours.vercel.app").replace(/\/$/, "")
 
 export const getByCategory = query({
   args: { category: v.union(v.literal("tasting"), v.literal("gym"), v.literal("corporate"), v.literal("organizer")) },
